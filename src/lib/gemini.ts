@@ -228,7 +228,7 @@ export const generateFallbackData = (validBatchYears: string[]): GeneratedStuden
   const fatherNames = [
     "Rajesh Sharma", "Suresh Patel", "Ramesh Kumar", "Mahesh Singh", "Dinesh Gupta",
     "Venkat Reddy", "Prakash Agarwal", "Ashok Khan", "Ravi Yadav", "Amit Joshi",
-    "Vikram Sharma", "Sanjay Patel", "Anil Kumar", "Deepak Singh", "Manoj Gupta"
+    "Vikram Sharma", "Sanjay Patel", "Anil Kumar", "Deepak Singh", "Manoj Gupte"
   ];
 
   const randomName = indianNames[Math.floor(Math.random() * indianNames.length)];
