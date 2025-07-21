@@ -95,10 +95,10 @@ export async function HEAD(
           'Content-Length': imageBuffer.length.toString(),
         },
       });
-    } catch (fileError) {
+    } catch {
       return new NextResponse(null, { status: 404 });
     }
-  } catch (error) {
+  } catch {
     return new NextResponse(null, { status: 500 });
   }
 }

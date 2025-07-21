@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, memo } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
@@ -63,9 +64,11 @@ export const CardSelector = memo(({ selectedCardType, onCardTypeChange }: CardSe
 
               {/* Demo image */}
               <div className="aspect-[8/5] bg-gray-100 flex items-center justify-center">
-                <img
+                <Image
                   src={template.demoImagePath}
                   alt={`${template.name} demo`}
+                  width={400}
+                  height={250}
                   className="w-full h-full object-contain"
                   onError={(e) => {
                     // Fallback if demo image doesn't exist

@@ -1,4 +1,4 @@
-import { CardTemplate, StudentData, FormFieldType } from '@/types/card';
+import { CardTemplate, StudentData } from '@/types/card';
 import { getRandomAvatar } from '@/lib/avatarUtils';
 
 const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;

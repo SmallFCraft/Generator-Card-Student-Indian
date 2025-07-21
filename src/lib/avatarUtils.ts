@@ -103,7 +103,7 @@ export const isValidBase64Image = (base64: string): boolean => {
     img.src = base64;
     
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 };

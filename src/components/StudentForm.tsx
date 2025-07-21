@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
-import { StudentData, CardTemplate, FormField, FormFieldType, ValidationResult } from "@/types/card";
+import { StudentData, CardTemplate, FormField, FormFieldType } from "@/types/card";
 
 interface StudentFormProps {
   studentData: StudentData;
@@ -60,25 +61,25 @@ export const StudentForm = ({ studentData, setStudentData, cardTemplate }: Stude
     return null;
   };
 
-  // Validate all form fields
-  const validateForm = (): ValidationResult => {
-    const errors: Record<string, string> = {};
-    let isValid = true;
+  // Validate all form fields (currently unused but kept for future use)
+  // const validateForm = (): ValidationResult => {
+  //   const errors: Record<string, string> = {};
+  //   let isValid = true;
 
-    cardTemplate.formFields.forEach(field => {
-      if (field.id === 'photo') return; // Skip photo validation here
+  //   cardTemplate.formFields.forEach(field => {
+  //     if (field.id === 'photo') return; // Skip photo validation here
 
-      const value = studentData[field.id] || '';
-      const error = validateField(field, value);
+  //     const value = studentData[field.id] || '';
+  //     const error = validateField(field, value);
 
-      if (error) {
-        errors[field.id] = error;
-        isValid = false;
-      }
-    });
+  //     if (error) {
+  //       errors[field.id] = error;
+  //       isValid = false;
+  //     }
+  //   });
 
-    return { isValid, errors };
-  };
+  //   return { isValid, errors };
+  // };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -179,9 +180,11 @@ export const StudentForm = ({ studentData, setStudentData, cardTemplate }: Stude
               </div>
             ) : (
               <div className="relative">
-                <img
-                  src={studentData.photo}
+                <Image
+                  src={studentData.photo || ''}
                   alt="Student photo"
+                  width={128}
+                  height={160}
                   className="w-32 h-40 object-cover rounded-lg border"
                 />
                 <Button

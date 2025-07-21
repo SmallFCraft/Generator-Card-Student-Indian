@@ -74,7 +74,7 @@ export interface CardTemplate {
 
 // Interface for student data (dynamic based on card type)
 export interface StudentData {
-  [key: string]: string | null;
+  [key: string]: string | null | undefined;
   photo?: string | null;
 }
 

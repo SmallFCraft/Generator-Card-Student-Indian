@@ -292,7 +292,7 @@ export const cardConfig: CardConfig = {
           fontWeight: 'normal',
           color: '#333333',
           maxWidth: 450,
-          textAlign: 'start',
+          textAlign: 'left',
         },
         dateOfIssue: {
           x: 170,
