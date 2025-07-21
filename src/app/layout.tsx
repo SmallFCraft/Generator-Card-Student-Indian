@@ -14,8 +14,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Indian Student ID Card Generator",
-  description: "Generate realistic student ID cards for Babu Banarasi Das University",
+  title: "Multi-University Student ID Card Generator",
+  description: "Generate realistic student ID cards for multiple Indian universities including Babu Banarasi Das University and IIT Madras",
+  keywords: ["student ID card", "university card", "Indian universities", "card generator", "student card", "ID card maker"],
+  authors: [{ name: "Student Card Generator Team" }],
+  creator: "Student Card Generator",
+  publisher: "Student Card Generator",
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

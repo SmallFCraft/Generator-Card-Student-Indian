@@ -4,36 +4,52 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Download, Sparkles, Upload } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { StudentForm } from "./StudentForm";
 import { CardPreview } from "./CardPreview";
-import { generateStudentData, generateFallbackData } from "@/lib/gemini";
-
-export interface StudentData {
-  name: string;
-  fatherName: string;
-  mobileNumber: string;
-  batchYear: string;
-  photo: string | null;
-}
+import { CardSelector } from "./CardSelector";
+import { generateStudentData } from "@/lib/gemini";
+import { StudentData, CardType, CardTemplate } from "@/types/card";
+import { cardConfig, getDefaultCardTemplate } from "@/config/cardTemplates";
 
 export const StudentCardGenerator = () => {
-  const [studentData, setStudentData] = useState<StudentData>({
-    name: "",
-    fatherName: "",
-    mobileNumber: "",
-    batchYear: "",
-    photo: null,
-  });
+  // Initialize with default card template
+  const defaultTemplate = getDefaultCardTemplate();
+  const [selectedCardType, setSelectedCardType] = useState<CardType>(cardConfig.defaultCardType);
+  const [cardTemplate, setCardTemplate] = useState<CardTemplate>(defaultTemplate);
+
+  // Initialize student data with empty values for all fields in the default template
+  const initializeStudentData = (template: CardTemplate): StudentData => {
+    const data: StudentData = {};
+    template.formFields.forEach(field => {
+      data[field.id] = field.id === 'photo' ? null : '';
+    });
+    return data;
+  };
+
+  const [studentData, setStudentData] = useState<StudentData>(
+    initializeStudentData(defaultTemplate)
+  );
   
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Handle card type selection
+  const handleCardTypeChange = (newCardType: CardType, newTemplate: CardTemplate) => {
+    setSelectedCardType(newCardType);
+    setCardTemplate(newTemplate);
+
+    // Reset student data to match new template fields
+    const newStudentData = initializeStudentData(newTemplate);
+    setStudentData(newStudentData);
+
+    toast.success(`Switched to ${newTemplate.name}`);
+  };
 
   const handleAutoGenerate = async () => {
     setIsGenerating(true);
     try {
       console.log("Starting auto-generation...");
-      const generatedData = await generateStudentData();
+      const generatedData = await generateStudentData(cardTemplate);
       console.log("Generated data:", generatedData);
 
       setStudentData(prev => ({
@@ -44,66 +60,47 @@ export const StudentCardGenerator = () => {
     } catch (error) {
       console.error("Error generating data:", error);
 
-      // Show more specific error message
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-
-      if (errorMessage.includes("API key")) {
-        toast.error("API key not configured. Using fallback data generation.");
-      } else if (errorMessage.includes("blocked")) {
-        toast.error("Content was blocked by safety filters. Using fallback data.");
-      } else if (errorMessage.includes("quota") || errorMessage.includes("limit")) {
-        toast.error("API quota exceeded. Using fallback data generation.");
-      } else {
-        toast.error(`Generation failed: ${errorMessage}. Using fallback data.`);
-      }
-
-      // Always provide fallback data so the user can still use the app
+      // Try fallback data generation
       try {
-        const currentYear = new Date().getFullYear();
-        const validBatchYears = [];
-
-        for (let i = 0; i < 5; i++) {
-          const startYear = currentYear - i;
-          const endYear = startYear + 4;
-          validBatchYears.push(`${startYear}-${endYear}`);
-        }
-
-        const fallbackData = generateFallbackData(validBatchYears);
-
+        const { generateFallbackDataWithAvatar } = await import("@/lib/gemini");
+        const fallbackData = await generateFallbackDataWithAvatar(cardTemplate);
         setStudentData(prev => ({
           ...prev,
           ...fallbackData
         }));
+        toast.warning("Used fallback data generation due to API error.");
       } catch (fallbackError) {
         console.error("Fallback generation also failed:", fallbackError);
+        toast.error("Failed to generate data. Please try again.");
       }
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleDownload = async () => {
-    // This function is passed to CardPreview but the actual download
-    // is handled internally by CardPreview component
-    setIsDownloading(true);
-    setTimeout(() => setIsDownloading(false), 1000);
-  };
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Form Section */}
-      <Card className="h-fit">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            Student Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <StudentForm 
-            studentData={studentData}
-            setStudentData={setStudentData}
-          />
+    <div className="space-y-8">
+      {/* Card Type Selection */}
+      <CardSelector
+        selectedCardType={selectedCardType}
+        onCardTypeChange={handleCardTypeChange}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Form Section */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle>Student Information</CardTitle>
+            <p className="text-sm text-gray-600">
+              Fill in the details for {cardTemplate.name}
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <StudentForm
+              studentData={studentData}
+              cardTemplate={cardTemplate}
+              setStudentData={setStudentData}
+            />
           
           <div className="space-y-3">
             <div className="flex gap-3">
@@ -117,14 +114,6 @@ export const StudentCardGenerator = () => {
                 {isGenerating ? "Generating..." : "Auto Generate"}
               </Button>
 
-              <Button
-                onClick={handleDownload}
-                disabled={isDownloading || !studentData.name}
-                className="flex-1"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {isDownloading ? "Downloading..." : "Download Card"}
-              </Button>
             </div>
           </div>
         </CardContent>
@@ -136,12 +125,14 @@ export const StudentCardGenerator = () => {
           <CardTitle>Card Preview</CardTitle>
         </CardHeader>
         <CardContent>
-          <CardPreview 
+          <CardPreview
             studentData={studentData}
-            onDownload={handleDownload}
+            cardTemplate={cardTemplate}
+            
           />
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

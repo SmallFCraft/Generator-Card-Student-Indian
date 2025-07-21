@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { StudentData } from "./StudentCardGenerator";
+import { StudentData, CardTemplate, TextPosition } from "@/types/card";
 import { toast } from "sonner";
 
 interface CardPreviewProps {
   studentData: StudentData;
-  onDownload: () => void;
+  cardTemplate: CardTemplate;
 }
 
-export const CardPreview = ({ studentData }: CardPreviewProps) => {
+export const CardPreview = ({ studentData, cardTemplate }: CardPreviewProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [templateLoaded, setTemplateLoaded] = useState(false);
   const [templateImage, setTemplateImage] = useState<HTMLImageElement | null>(null);
@@ -20,9 +20,9 @@ export const CardPreview = ({ studentData }: CardPreviewProps) => {
     setIsClient(true);
   }, []);
 
-  // Load template image
+  // Load template image from API
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || !cardTemplate) return;
 
     const img = new Image();
     img.onload = () => {
@@ -32,78 +32,105 @@ export const CardPreview = ({ studentData }: CardPreviewProps) => {
     img.onerror = () => {
       toast.error("Failed to load card template");
     };
-    img.src = "/card-student.png";
-  }, [isClient]);
+    // Load template from secure API route
+    img.src = `/api/template/${cardTemplate.id}`;
+  }, [isClient, cardTemplate]);
+
+  // Helper function to draw text with proper positioning and styling
+  const drawText = (
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    position: TextPosition
+  ) => {
+    ctx.save();
+
+    // Set font properties
+    const fontWeight = position.fontWeight || 'normal';
+    const fontSize = position.fontSize || 20;
+    const fontFamily = position.fontFamily || 'Arial';
+    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+
+    // Set text color
+    ctx.fillStyle = position.color || '#000000';
+
+    // Set text alignment
+    ctx.textAlign = (position.textAlign || 'left') as CanvasTextAlign;
+
+    // Handle text wrapping if maxWidth is specified
+    if (position.maxWidth) {
+      const words = text.split(' ');
+      let line = '';
+      let y = position.y;
+      const lineHeight = fontSize * 1.2;
+
+      for (let i = 0; i < words.length; i++) {
+        const testLine = line + words[i] + ' ';
+        const metrics = ctx.measureText(testLine);
+        const testWidth = metrics.width;
+
+        if (testWidth > position.maxWidth && i > 0) {
+          ctx.fillText(line, position.x, y);
+          line = words[i] + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, position.x, y);
+    } else {
+      ctx.fillText(text, position.x, position.y);
+    }
+
+    ctx.restore();
+  };
 
   const drawCard = useCallback(async () => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
-    
-    if (!canvas || !ctx || !templateImage) return;
 
-    // Set canvas size to match template
-    canvas.width = templateImage.width;
-    canvas.height = templateImage.height;
+    if (!canvas || !ctx || !templateImage || !cardTemplate) return;
+
+    // Set canvas size to match template dimensions
+    canvas.width = cardTemplate.dimensions.width;
+    canvas.height = cardTemplate.dimensions.height;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw template
-    ctx.drawImage(templateImage, 0, 0);
+    // Draw template background
+    ctx.drawImage(templateImage, 0, 0, canvas.width, canvas.height);
 
-    // Set text properties
-    ctx.fillStyle = '#000000';
-    ctx.textAlign = 'left';
+    // Draw text fields based on template configuration
+    cardTemplate.formFields.forEach((field) => {
+      if (field.id === 'photo') return; // Skip photo field
 
-    // Draw student name
-    if (studentData.name) {
-      ctx.font = '20px Arial';
-      ctx.fillText(studentData.name, 200, 215);
-    }
+      const value = studentData[field.id];
+      const position = cardTemplate.textPositions[field.id];
 
-    // Draw father's name
-    if (studentData.fatherName) {
-      ctx.font = '20px Arial';
-      ctx.fillText(`${studentData.fatherName}`, 200, 276);
-    }
+      if (value && position) {
+        drawText(ctx, value, position);
+      }
+    });
 
-    // Draw mobile number
-    if (studentData.mobileNumber) {
-      ctx.font = '20px Arial';
-      ctx.fillText(`${studentData.mobileNumber}`, 200, 308);
-    }
-
-    // Draw batch year
-    if (studentData.batchYear) {
-      ctx.font = '20px Arial';
-      ctx.fillText(`${studentData.batchYear}`, 200, 340);
-    }
-
-    // Draw student photo
-    if (studentData.photo) {
+    // Draw student photo if provided
+    if (studentData.photo && cardTemplate.photoPosition) {
       try {
         const photoImg = new Image();
         photoImg.onload = () => {
-          // Position photo on the right side (adjust coordinates based on template)
-          const photoX = canvas.width - 180; // 180px from right edge
-          const photoY = 155; // 150px from top
-          const photoWidth = 160; // 3:4 ratio width
-          const photoHeight = 205; // 3:4 ratio height
+          const { x, y, width, height, borderRadius } = cardTemplate.photoPosition;
 
-          // Draw photo with rounded corners (fallback for older browsers)
+          // Draw photo with optional rounded corners
           ctx.save();
           ctx.beginPath();
 
-          // Check if roundRect is available, otherwise use regular rect
-          if (typeof ctx.roundRect === 'function') {
-            ctx.roundRect(photoX, photoY, photoWidth, photoHeight, 8);
+          if (borderRadius && typeof ctx.roundRect === 'function') {
+            ctx.roundRect(x, y, width, height, borderRadius);
           } else {
-            // Fallback for older browsers
-            ctx.rect(photoX, photoY, photoWidth, photoHeight);
+            ctx.rect(x, y, width, height);
           }
 
           ctx.clip();
-          ctx.drawImage(photoImg, photoX, photoY, photoWidth, photoHeight);
+          ctx.drawImage(photoImg, x, y, width, height);
           ctx.restore();
         };
         photoImg.src = studentData.photo;
@@ -111,7 +138,7 @@ export const CardPreview = ({ studentData }: CardPreviewProps) => {
         console.error("Error drawing photo:", error);
       }
     }
-  }, [studentData, templateImage]);
+  }, [studentData, templateImage, cardTemplate]);
 
   // Draw card when data changes
   useEffect(() => {
@@ -188,7 +215,14 @@ export const CardPreview = ({ studentData }: CardPreviewProps) => {
         </div>
       )}
       
-      {!studentData.name && (
+      {!templateLoaded && (
+        <div className="text-center text-gray-500 py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p>Loading card template...</p>
+        </div>
+      )}
+
+      {templateLoaded && !Object.values(studentData).some(value => value && value !== '') && (
         <div className="text-center text-gray-500 py-8">
           <p>Fill in student information to see preview</p>
         </div>

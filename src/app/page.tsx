@@ -24,10 +24,10 @@ export default function Home() {
       <div className="container mx-auto max-w-6xl">
         <header className="text-center py-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            Indian Student ID Card Generator
+            Multi-University Student ID Card Generator
           </h1>
           <p className="text-gray-600">
-            Generate realistic student ID cards for Babu Banarasi Das University
+            Generate realistic student ID cards for multiple Indian universities
           </p>
         </header>
         <StudentCardGenerator />

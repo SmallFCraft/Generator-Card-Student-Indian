@@ -2,6 +2,18 @@
 const nextConfig = {
   // Handle external packages
   serverExternalPackages: [],
+  // Allow cross-origin requests from local network IPs during development
+  allowedDevOrigins: [
+    "192.168.101.10",
+    "192.168.101.11", // Current server IP
+    "192.168.1.*", // Common home network range
+    "192.168.0.*", // Common router default range
+    "10.0.0.*", // Private network range
+    "172.16.*", // Private network range
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+  ],
   // Suppress hydration warnings for browser extensions
   compiler: {
     removeConsole:
