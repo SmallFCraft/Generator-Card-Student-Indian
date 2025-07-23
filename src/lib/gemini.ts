@@ -16,7 +16,11 @@ const generatePromptForTemplate = (cardTemplate: CardTemplate): string => {
   const hasDepartmentAndDegree = requiredFields.some(f => f.id === 'department') &&
                                  requiredFields.some(f => f.id === 'degree');
 
-  let prompt = `Generate ONE Indian student data object. Return only a single JSON object: {${jsonFields}}`;
+  // Add randomization seed for unique names
+  const randomSeed = Math.floor(Math.random() * 10000);
+  const timestamp = Date.now() % 10000;
+  
+  let prompt = `Generate ONE unique Indian student data object with diverse, realistic names. Use randomization seed: ${randomSeed}${timestamp}. Avoid common names like "Raj", "Priya", "Aman", "Rohit". Use varied regional Indian names including South Indian, North Indian, Bengali, Gujarati names. Return only a single JSON object: {${jsonFields}}`;
 
   if (hasDepartmentAndDegree) {
     prompt += ` Ensure degree matches department: Engineering departments should have B.Tech/M.Tech/PhD, Science departments should have B.Sc/M.Sc/PhD.`;
@@ -33,7 +37,10 @@ const generateShortPrompt = (cardTemplate: CardTemplate): string => {
 
   const jsonFields = requiredFields.map(field => `"${field.id}":""`).join(',');
 
-  return `Generate realistic Indian student data. Return single JSON: {${jsonFields}}`;
+  // Add randomization for short prompt too
+  const randomSeed = Math.floor(Math.random() * 10000);
+  
+  return `Generate unique Indian student data. Diverse names (${randomSeed}). Return single JSON: {${jsonFields}}`;
 };
 
 export const generateStudentData = async (cardTemplate: CardTemplate, useShortPrompt = false): Promise<StudentData> => {
@@ -72,7 +79,7 @@ export const generateStudentData = async (cardTemplate: CardTemplate, useShortPr
         temperature: 1.2,
         topK: 20,
         topP: 0.9,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 4096,
       },
       safetySettings: [
         {

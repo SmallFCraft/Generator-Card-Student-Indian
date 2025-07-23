@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Student Card Auto Verifier V2.0",
-  "version": "2.0.0",
+  "name": "Student Card Auto Verifier v2.1.0",
+  "version": "2.1.0",
   "description": "Tự động xác minh điều kiện sử dụng Google One Student và điền form SheerID",
   
   "permissions": [
@@ -15,6 +15,7 @@
     "https://one.google.com/*",
     "https://services.sheerid.com/*",
     "http://localhost:3000/*",
+    "https://card.loading99.site/*",
     "file:///*"
   ],
   

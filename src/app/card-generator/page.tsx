@@ -72,16 +72,6 @@ const universities: University[] = [
   }
 ];
 
-// Indian names
-const indianNames = [
-  "Aarav Sharma", "Vivaan Patel", "Aditya Gupta", "Vihaan Singh", "Arjun Kumar",
-  "Sai Reddy", "Reyansh Agarwal", "Ayaan Khan", "Krishna Joshi", "Ishaan Verma", 
-  "Ananya Sharma", "Diya Patel", "Aadhya Gupta", "Kavya Singh", "Anvi Kumar",
-  "Saanvi Reddy", "Larisa Agarwal", "Myra Khan", "Aanya Joshi", "Pihu Verma",
-  "Aryan Mehta", "Kabir Nair", "Shivansh Roy", "Atharv Das", "Rudra Bose",
-  "Priya Iyer", "Riya Ghosh", "Sara Banerjee", "Tara Kulkarni", "Nisha Desai"
-];
-
 // Departments
 const departments = [
   "Computer Science", "Information Technology", "Electronics Engineering",
@@ -211,13 +201,7 @@ export default function CardGeneratorPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [cardGenerated, setCardGenerated] = useState(false);
   const [showShineEffect, setShowShineEffect] = useState(false);
-  const [generatedCardData, setGeneratedCardData] = useState<{
-    school: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    dateOfBirth: string;
-  } | null>(null);
+
   const cardRef = useRef<HTMLDivElement>(null);
   const hasGeneratedRef = useRef(false); // Track if initial generation has happened
 
@@ -441,17 +425,8 @@ export default function CardGeneratorPage() {
       };
       console.log('💾 Card data saved for extension:', cardData);
       
-      // Chuẩn bị data cho extension
-      const nameParts = (studentData.name || 'Student Name').split(' ');
-      const dobValue = studentData.dateOfBirth || generateRandomDate();
-      const extensionData = {
-        school: university.name,
-        firstName: nameParts[0] || '',
-        lastName: nameParts.slice(1).join(' ') || nameParts[0] || '',
-        email: `${nameParts[0]?.toLowerCase() || 'student'}.${studentID.toLowerCase().replace(/[^a-z0-9]/gi, '')}@student.edu.in`,
-        dateOfBirth: dobValue
-      };
-      setGeneratedCardData(extensionData);
+
+
 
       // Show appropriate success message based on generation method
       if (generationMethod === 'AI') {
@@ -674,8 +649,7 @@ export default function CardGeneratorPage() {
       studentInfo: studentInfo
     }, '*');
     
-    // Lưu vào state
-    setGeneratedCardData(studentInfo);
+
     toast.success('✅ Đã gửi thông tin đến extension!');
   };
 

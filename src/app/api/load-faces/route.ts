@@ -39,16 +39,6 @@ const placeholderImages = [
   'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmNWY1Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlBob3RvPC90ZXh0Pjwvc3ZnPg=='
 ];
 
-// Function to check if image URL is accessible
-async function checkImageAvailability(url: string): Promise<boolean> {
-  try {
-    const response = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(3000) });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
