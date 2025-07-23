@@ -1,9 +1,10 @@
 # Multi-University Student ID Card Generator
 
-A modern web application that generates realistic Indian student ID cards for multiple universities using React 19, Next.js 15, and Google Gemini AI.
+A modern web application that generates realistic Indian student ID cards for multiple universities using React 19, Next.js 15, and Google Gemini AI. Features two different generation modes for different use cases.
 
 ## Features
 
+### Advanced Card Generator (Main Page)
 - **Multiple University Support**: Generate cards for different Indian universities
 - **Card Template Selection**: Choose from various university card templates
 - **Dynamic Form Fields**: Form fields adapt based on selected university template
@@ -16,6 +17,16 @@ A modern web application that generates realistic Indian student ID cards for mu
 - **Form Validation**: Comprehensive validation for all input fields
 - **Responsive Design**: Works on desktop and mobile devices
 - **Secure Template System**: Template images served securely via API routes
+
+### Quick Card Generator (/card-generator)
+- **One-Click Generation**: Generate complete student cards with a single click
+- **10+ Indian Universities**: IIT Bombay, Delhi, Madras, Kanpur, Kharagpur, IISc, DU, JNU, IIM Ahmedabad, BHU
+- **30+ Indian Names**: Realistic Indian student names for authentic cards
+- **16 Departments**: Computer Science, IT, Engineering, Sciences, Business, etc.
+- **Random Student Photos**: Integration with Random User API for realistic photos
+- **Instant Download**: Download cards immediately using html2canvas
+- **Professional Layout**: Clean, modern card design with barcode generation
+- **No Form Required**: Perfect for quick demos and testing
 
 ## Tech Stack
 
@@ -56,6 +67,17 @@ npm run dev
 ```
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Available Routes
+
+- `/` - Advanced Card Generator (main page with AI and form-based generation)
+- `/card-generator` - Quick Card Generator (one-click generation with random data)
+
+## API Endpoints
+
+- `/api/barcode` - Generate SVG barcodes for student cards
+- `/api/load-faces` - Get random student photos from Random User API
+- `/api/image/[base64]` - Serve base64 encoded images with proper headers
 
 ### Getting a Gemini API Key
 

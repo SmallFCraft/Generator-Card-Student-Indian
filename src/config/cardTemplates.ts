@@ -239,7 +239,7 @@ export const cardConfig: CardConfig = {
           y: 190,
           fontSize: 22,
           fontFamily: 'Arial',
-          fontWeight: 'normal',
+          fontWeight: 'bold',
           color: '#000000',
           maxWidth: 350,
           textAlign: 'left'
@@ -249,7 +249,7 @@ export const cardConfig: CardConfig = {
           y: 218,
           fontSize: 22,
           fontFamily: 'Arial',
-          fontWeight: 'normal',
+          fontWeight: 'bold',
           color: '#333333',
           maxWidth: 350,
           textAlign: 'left'
@@ -259,7 +259,7 @@ export const cardConfig: CardConfig = {
           y: 245,
           fontSize: 22,
           fontFamily: 'Arial',
-          fontWeight: 'normal',
+          fontWeight: 'bold',
           color: '#000000',
           maxWidth: 350,
           textAlign: 'left'
@@ -269,7 +269,7 @@ export const cardConfig: CardConfig = {
           y: 273,
           fontSize: 22,
           fontFamily: 'Arial',
-          fontWeight: 'normal',
+          fontWeight: 'bold',
           color: '#333333',
           maxWidth: 350,
           textAlign: 'left'
@@ -279,9 +279,9 @@ export const cardConfig: CardConfig = {
           y: 300,
           fontSize: 22,
           fontFamily: 'Arial',
-          fontWeight: 'normal',
+          fontWeight: 'bold',
           color: '#333333',
-          maxWidth: 350,
+          maxWidth: 450,
           textAlign: 'left'
         },
         address: {
@@ -289,7 +289,7 @@ export const cardConfig: CardConfig = {
           y: 327,
           fontSize: 22,
           fontFamily: 'Arial',
-          fontWeight: 'normal',
+          fontWeight: 'bold',
           color: '#333333',
           maxWidth: 450,
           textAlign: 'left',
