@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Download, Sparkles, FileText } from 'lucide-react';
+import { ArrowLeft, Download, Sparkles, FileText, Send } from 'lucide-react';
 import { generateStudentData, generateFallbackDataWithAvatar } from '@/lib/gemini';
 import { getCardTemplate } from '@/config/cardTemplates';
 import { CardType } from '@/types/card';
@@ -211,6 +211,13 @@ export default function CardGeneratorPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [cardGenerated, setCardGenerated] = useState(false);
   const [showShineEffect, setShowShineEffect] = useState(false);
+  const [generatedCardData, setGeneratedCardData] = useState<{
+    school: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    dateOfBirth: string;
+  } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const hasGeneratedRef = useRef(false); // Track if initial generation has happened
 
@@ -421,6 +428,31 @@ export default function CardGeneratorPage() {
       setShowShineEffect(true);
       setTimeout(() => setShowShineEffect(false), 2000); // Remove after 2 seconds
 
+      // Lưu card data để gửi extension
+      const cardData = {
+        university: university.name,
+        studentName: studentData.name || 'Student Name',
+        studentId: studentID,
+        course: studentData.course || generateCourse(),
+        class: studentData.class || generateClass(),
+        department: studentData.department || getRandomElement(departments) as string,
+        dob: studentData.dateOfBirth || generateRandomDate(),
+        validUntil: validUntil
+      };
+      console.log('💾 Card data saved for extension:', cardData);
+      
+      // Chuẩn bị data cho extension
+      const nameParts = (studentData.name || 'Student Name').split(' ');
+      const dobValue = studentData.dateOfBirth || generateRandomDate();
+      const extensionData = {
+        school: university.name,
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || nameParts[0] || '',
+        email: `${nameParts[0]?.toLowerCase() || 'student'}.${studentID.toLowerCase().replace(/[^a-z0-9]/gi, '')}@student.edu.in`,
+        dateOfBirth: dobValue
+      };
+      setGeneratedCardData(extensionData);
+
       // Show appropriate success message based on generation method
       if (generationMethod === 'AI') {
         toast.success('🤖 Student card generated with AI!');
@@ -602,6 +634,67 @@ export default function CardGeneratorPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Function để gửi data cho extension
+  const sendToExtension = () => {
+    if (typeof window === 'undefined') return;
+    
+    // Trích xuất data từ DOM elements hiện tại
+    const universityName = document.getElementById('university-name')?.textContent?.trim() || '';
+    const studentName = document.getElementById('student-name')?.textContent?.trim() || '';
+    const studentId = document.getElementById('student-id')?.textContent?.replace('🆔 Student ID: ', '').trim() || '';
+    const studentDob = document.getElementById('student-dob')?.textContent?.trim() || '';
+    
+    if (!universityName || !studentName) {
+      toast.error('Vui lòng tạo card trước khi gửi đến extension');
+      return;
+    }
+    
+    // Tách tên thành firstName và lastName
+    const nameParts = studentName.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || firstName;
+    
+    // Tạo email từ tên và ID
+    const emailPrefix = `${firstName.toLowerCase()}.${studentId.toLowerCase().replace(/[^a-z0-9]/gi, '')}`;
+    const email = `${emailPrefix}@student.edu.in`;
+    
+    const studentInfo = {
+      school: universityName,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      dateOfBirth: studentDob
+    };
+    
+    console.log('🔍 Sending to extension:', studentInfo);
+    
+    // Gửi message cho extension
+    window.postMessage({
+      type: 'STUDENT_CARD_EXTRACT',
+      studentInfo: studentInfo
+    }, '*');
+    
+    // Lưu vào state
+    setGeneratedCardData(studentInfo);
+    toast.success('✅ Đã gửi thông tin đến extension!');
+  };
+
+  // Lắng nghe response từ extension
+  useEffect(() => {
+    const handleExtensionResponse = (event: MessageEvent) => {
+      if (event.source !== window || event.data?.type !== 'INFO_EXTRACTED') return;
+      
+      if (event.data.success) {
+        console.log('✅ Extension đã nhận thông tin thành công');
+      } else {
+        console.log('❌ Extension gặp lỗi');
+      }
+    };
+    
+    window.addEventListener('message', handleExtensionResponse);
+    return () => window.removeEventListener('message', handleExtensionResponse);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 p-4">
       <div className="container mx-auto max-w-4xl">
@@ -658,6 +751,16 @@ export default function CardGeneratorPage() {
             >
               <FileText className="h-4 w-4 mr-2" />
               {isDownloading ? "Downloading..." : "📄 Download PDF"}
+            </Button>
+            <Button
+              onClick={sendToExtension}
+              disabled={!cardGenerated}
+              variant="outline"
+              className="min-w-[180px] bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+              size="lg"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              📤 Send to Extension
             </Button>
           </div>
         </Card>
