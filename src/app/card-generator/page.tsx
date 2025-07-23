@@ -387,7 +387,8 @@ export default function CardGeneratorPage() {
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        logging: false
+        logging: false,
+        scale: 2 // Higher resolution for better quality
       });
 
       // Remove clone
@@ -448,25 +449,40 @@ export default function CardGeneratorPage() {
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        logging: false
+        logging: false,
+        scale: 2 // Higher resolution for better PDF quality
       });
 
       // Remove clone
       document.body.removeChild(cardClone);
 
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/png', 1.0); // Maximum quality
 
-      // Create PDF with card dimensions
-      const cardWidth = 85.6; // Credit card width in mm
-      const cardHeight = 53.98; // Credit card height in mm
+      // Create PDF with proper student card dimensions
+      const cardWidth = 100; // Student card width in mm (larger than credit card)
+      const cardHeight = 63; // Student card height in mm (maintaining aspect ratio)
+
+      // Calculate actual canvas dimensions to maintain aspect ratio
+      const canvasAspectRatio = canvas.width / canvas.height;
+      const cardAspectRatio = cardWidth / cardHeight;
+
+      let finalWidth = cardWidth;
+      let finalHeight = cardHeight;
+
+      // Adjust dimensions to maintain aspect ratio
+      if (canvasAspectRatio > cardAspectRatio) {
+        finalHeight = cardWidth / canvasAspectRatio;
+      } else {
+        finalWidth = cardHeight * canvasAspectRatio;
+      }
 
       const pdf = new jsPDF({
-        orientation: 'landscape',
+        orientation: finalWidth > finalHeight ? 'landscape' : 'portrait',
         unit: 'mm',
-        format: [cardWidth, cardHeight]
+        format: [finalWidth, finalHeight]
       });
 
-      pdf.addImage(imgData, 'PNG', 0, 0, cardWidth, cardHeight);
+      pdf.addImage(imgData, 'PNG', 0, 0, finalWidth, finalHeight, '', 'FAST');
 
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       pdf.save(`student-card-${timestamp}.pdf`);
@@ -501,7 +517,7 @@ export default function CardGeneratorPage() {
             </Link>
           </div>
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            🎓 Student Card Generator
+            🎓 Quick Card Generator
           </h1>
           <p className="text-gray-600">
             Create professional student ID cards for Indian Universities
@@ -593,7 +609,7 @@ export default function CardGeneratorPage() {
             <div className="flex flex-wrap p-6 gap-6">
               <Image
                 id="student-photo"
-                className="w-[120px] h-[145px] object-cover border-2 border-gray-300 rounded-xl bg-gray-100 shadow-lg transition-transform hover:scale-105"
+                className="w-[200px] h-[250px] object-cover border-2 border-gray-300 rounded-xl bg-gray-100 shadow-lg transition-transform hover:scale-105"
                 src="https://channel.mediacdn.vn/prupload/879/2018/05/img20180503174618883.jpg"
                 alt="Student Photo"
                 width={120}
