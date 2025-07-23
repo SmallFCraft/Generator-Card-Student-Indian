@@ -660,26 +660,7 @@ export default function CardGeneratorPage() {
           </div>
         </div>
 
-        {/* Footer */}
-        <footer className="text-center py-8 text-gray-600 mt-12">
-          <div className="max-w-2xl mx-auto">
-            <h3 className="text-lg font-semibold mb-2 text-gray-800">🎓 Student Card Generator</h3>
-            <p className="text-sm leading-relaxed mb-4">
-              Generate professional student ID cards for Indian Universities with realistic data and photos. 
-              Perfect for testing, demos, or educational purposes.
-            </p>
-            <div className="flex justify-center gap-8 flex-wrap mb-4 text-sm">
-              <div>✨ <strong>10+</strong> Universities</div>
-              <div>👥 <strong>30+</strong> Names</div>
-              <div>🏫 <strong>16</strong> Departments</div>
-              <div>🖼️ <strong>AI</strong> Generated Photos</div>
-            </div>
-            <div className="border-t border-gray-200 pt-4 text-xs text-gray-500">
-              <p>Made with ❤️ for educational purposes • Generate responsibly</p>
-              <p className="mt-2">© 2025 Student Card Generator • All cards are for demonstration only</p>
-            </div>
-          </div>
-        </footer>
+
       </div>
     </div>
   );
