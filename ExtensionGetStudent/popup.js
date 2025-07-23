@@ -2,6 +2,7 @@
 document.addEventListener("DOMContentLoaded", function () {
   const directVerifyBtn = document.getElementById("directVerifyBtn");
   const extractBtn = document.getElementById("extractBtn");
+  const cardGeneratorBtn = document.getElementById("cardGeneratorBtn");
   const statusDiv = document.getElementById("status");
 
   // Load saved config và kiểm tra auto-filled data
@@ -240,26 +241,11 @@ document.addEventListener("DOMContentLoaded", function () {
         async function (tabs) {
           const currentTab = tabs[0];
 
-          // Kiểm tra xem tab hiện tại có phải là student card website không
-          const allowedUrls = [
-            "localhost:3000",
-            "card.loading99.site/card-generator",
-          ];
-          const isValidUrl = allowedUrls.some(url =>
-            currentTab.url.includes(url)
-          );
-
-          if (!isValidUrl) {
-            const errorMessage = `
-            ❌ Xin vui lòng truy cập vào trang web 
-            https://card.loading99.site/card-generator
-            để có thể sử dụng tiện ích.
-          `;
-            showStatus("error", errorMessage.trim());
-            extractBtn.disabled = false;
-            extractBtn.textContent = "📋 Extract Info from Website";
-            return;
-          }
+          // Kiểm tra xem tab hiện tại có phải là trang web phù hợp không
+          // Thay vì kiểm tra URL cố định, ta sẽ gửi message để kiểm tra
+          // xem trang có student card hay form thông tin student không
+          console.log("🔍 DEBUG: Checking if current page has student info...");
+          console.log("🔍 DEBUG: Current URL:", currentTab.url);
           console.log("🔍 DEBUG: Attempting to inject content script first...");
 
           // Inject content script manually để đảm bảo nó được load
@@ -366,10 +352,10 @@ document.addEventListener("DOMContentLoaded", function () {
                   "🔍 DEBUG: No data or failed response:",
                   response
                 );
-                showStatus(
-                  "error",
-                  "❌ No student card found on current page!"
-                );
+                const errorMsg =
+                  response?.error ||
+                  "No student information found on this page!";
+                showStatus("error", `❌ ${errorMsg}`);
               }
 
               extractBtn.disabled = false;
@@ -388,6 +374,24 @@ document.addEventListener("DOMContentLoaded", function () {
           }, 8000);
         }
       );
+    });
+  }
+
+  // Event listener cho nút Card Generator
+  if (cardGeneratorBtn) {
+    cardGeneratorBtn.addEventListener("click", function () {
+      // Mở trang web card generator trong tab mới
+      chrome.tabs.create({
+        url: "https://card.loading99.site/card-generator",
+      });
+
+      // Hiển thị thông báo
+      showStatus("success", "🎓 Opening Card Generator...");
+
+      // Đóng popup sau khi mở tab mới
+      setTimeout(() => {
+        window.close();
+      }, 500);
     });
   }
 });

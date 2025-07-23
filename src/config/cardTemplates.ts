@@ -19,6 +19,19 @@ export const cardConfig: CardConfig = {
       },
       formFields: [
         {
+          id: 'school',
+          label: 'School/University',
+          type: FormFieldType.TEXT,
+          placeholder: 'University name',
+          required: true,
+          defaultValue: 'Babu Banarasi Das University',
+          readonly: true,
+          validation: {
+            minLength: 2,
+            maxLength: 100
+          }
+        },
+        {
           id: 'name',
           label: "Student's Name",
           type: FormFieldType.TEXT,
@@ -138,6 +151,19 @@ export const cardConfig: CardConfig = {
         code: 'IITM'
       },
       formFields: [
+        {
+          id: 'school',
+          label: 'School/University',
+          type: FormFieldType.TEXT,
+          placeholder: 'University name',
+          required: true,
+          defaultValue: 'Indian Institute of Technology Madras',
+          readonly: true,
+          validation: {
+            minLength: 2,
+            maxLength: 100
+          }
+        },
         {
           id: 'name',
           label: 'Name',

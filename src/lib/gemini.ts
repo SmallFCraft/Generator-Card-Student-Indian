@@ -4,47 +4,57 @@ import { getRandomAvatar } from '@/lib/avatarUtils';
 const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
+// Simple cache để tránh gọi API quá nhiều
+const dataCache = new Map<string, { data: StudentData; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 phút
+
 // Helper function to generate prompt based on card template
 const generatePromptForTemplate = (cardTemplate: CardTemplate): string => {
   const requiredFields = cardTemplate.formFields.filter(field =>
-    field.required && field.id !== 'photo'
+    field.required && field.id !== 'photo' && !field.readonly && !field.defaultValue
   );
 
-  const jsonFields = requiredFields.map(field => `"${field.id}": "value"`).join(',');
-
-  // Check if this template has both department and degree fields
-  const hasDepartmentAndDegree = requiredFields.some(f => f.id === 'department') &&
-                                 requiredFields.some(f => f.id === 'degree');
+  const jsonFields = requiredFields.map(field => `"${field.id}":"sample"`).join(',');
 
   // Add randomization seed for unique names
-  const randomSeed = Math.floor(Math.random() * 10000);
-  const timestamp = Date.now() % 10000;
+  const randomSeed = Math.floor(Math.random() * 1000);
   
-  let prompt = `Generate ONE unique Indian student data object with diverse, realistic names. Use randomization seed: ${randomSeed}${timestamp}. Avoid common names like "Raj", "Priya", "Aman", "Rohit". Use varied regional Indian names including South Indian, North Indian, Bengali, Gujarati names. Return only a single JSON object: {${jsonFields}}`;
-
-  if (hasDepartmentAndDegree) {
-    prompt += ` Ensure degree matches department: Engineering departments should have B.Tech/M.Tech/PhD, Science departments should have B.Sc/M.Sc/PhD.`;
-  }
-
-  return prompt;
+  return `Generate Indian student data. Random seed: ${randomSeed}. JSON: {${jsonFields}}`;
 };
 
 // Shorter prompt for MAX_TOKENS fallback
 const generateShortPrompt = (cardTemplate: CardTemplate): string => {
   const requiredFields = cardTemplate.formFields.filter(field =>
-    field.required && field.id !== 'photo'
+    field.required && field.id !== 'photo' && !field.readonly && !field.defaultValue
   );
 
   const jsonFields = requiredFields.map(field => `"${field.id}":""`).join(',');
-
-  // Add randomization for short prompt too
-  const randomSeed = Math.floor(Math.random() * 10000);
   
-  return `Generate unique Indian student data. Diverse names (${randomSeed}). Return single JSON: {${jsonFields}}`;
+  return `Indian student JSON: {${jsonFields}}`;
 };
 
-export const generateStudentData = async (cardTemplate: CardTemplate, useShortPrompt = false): Promise<StudentData> => {
-  console.log('generateStudentData called for:', cardTemplate.university.name);
+export const generateStudentData = async (cardTemplate: CardTemplate, useShortPrompt = false, retryCount = 0): Promise<StudentData> => {
+  console.log('generateStudentData called for:', cardTemplate.university.name, `(attempt ${retryCount + 1})`);
+
+  // Safety wrapper để đảm bảo luôn có fallback
+  try {
+    return await generateStudentDataInternal(cardTemplate, useShortPrompt, retryCount);
+  } catch (error) {
+    console.error('Final safety fallback:', error);
+    return generateFallbackData(cardTemplate);
+  }
+};
+
+const generateStudentDataInternal = async (cardTemplate: CardTemplate, useShortPrompt = false, retryCount = 0): Promise<StudentData> => {
+  console.log('generateStudentData called for:', cardTemplate.university.name, `(attempt ${retryCount + 1})`);
+
+  // Check cache first
+  const cacheKey = `${cardTemplate.id}_${useShortPrompt}`;
+  const cached = dataCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    console.log('Using cached data');
+    return { ...cached.data }; // Clone to avoid mutations
+  }
 
   if (!GEMINI_API_KEY) {
     console.warn("Gemini API key not configured. Using fallback data generation.");
@@ -53,21 +63,23 @@ export const generateStudentData = async (cardTemplate: CardTemplate, useShortPr
 
   // Auto-use short prompt for templates with many fields to avoid MAX_TOKENS
   const requiredFieldsCount = cardTemplate.formFields.filter(field => field.required && field.id !== 'photo').length;
-  const shouldUseShortPrompt = useShortPrompt || requiredFieldsCount > 6;
+  const shouldUseShortPrompt = useShortPrompt || requiredFieldsCount > 5; // Giảm threshold từ 6 xuống 5
 
   const prompt = shouldUseShortPrompt ? generateShortPrompt(cardTemplate) : generatePromptForTemplate(cardTemplate);
 
   console.log(`Using ${shouldUseShortPrompt ? 'short' : 'normal'} prompt for ${cardTemplate.university.name} (${requiredFieldsCount} fields)`);
   console.log('Prompt:', prompt);
 
-
+  // Timeout promise để tránh chờ quá lâu
+  const TIMEOUT_DURATION = retryCount > 0 ? 8000 : 12000; // Tăng timeout: 12s cho attempt đầu, 8s cho retry
+  
   try {
     console.log('Making request to Gemini API...');
 
     const requestBody = {
       systemInstruction: {
         parts: [{
-          text: "You must return exactly ONE JSON object. Do not return arrays or multiple objects. Return only a single JSON object with the requested fields."
+          text: "Return only ONE JSON object. Be concise."
         }]
       },
       contents: [{
@@ -76,10 +88,11 @@ export const generateStudentData = async (cardTemplate: CardTemplate, useShortPr
         }]
       }],
       generationConfig: {
-        temperature: 1.2,
-        topK: 20,
-        topP: 0.9,
-        maxOutputTokens: 4096,
+        temperature: 0.7, // Giảm thêm để faster generation
+        topK: 8,          // Giảm thêm để nhanh hơn  
+        topP: 0.7,        // Giảm thêm
+        maxOutputTokens: shouldUseShortPrompt ? 1024 : 2048, // Dynamic based on prompt type
+        candidateCount: 1, // Chỉ tạo 1 candidate để nhanh hơn
       },
       safetySettings: [
         {
@@ -103,13 +116,33 @@ export const generateStudentData = async (cardTemplate: CardTemplate, useShortPr
 
     console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
-    const response = await fetch(GEMINI_API_URL, {
+    // Sử dụng Promise.race với AbortController để handle timeout properly
+    const controller = new AbortController();
+    let timeoutId: NodeJS.Timeout | undefined;
+    
+    const fetchPromise = fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
     });
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        controller.abort();
+        reject(new Error(`API timeout after ${TIMEOUT_DURATION}ms`));
+      }, TIMEOUT_DURATION);
+    });
+
+    // Race between fetch và timeout
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+    
+    // Clear timeout nếu fetch thành công trước
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -237,6 +270,14 @@ export const generateStudentData = async (cardTemplate: CardTemplate, useShortPr
       }
     }
     
+    // Merge với defaultValues từ template trước
+    const defaultValues: StudentData = {};
+    cardTemplate.formFields.forEach(field => {
+      if (field.defaultValue) {
+        defaultValues[field.id] = field.defaultValue;
+      }
+    });
+
     // Validate the generated data based on template requirements
     const requiredFields = cardTemplate.formFields.filter(field =>
       field.required && field.id !== 'photo'
@@ -245,7 +286,7 @@ export const generateStudentData = async (cardTemplate: CardTemplate, useShortPr
     // Check for missing fields and fill with fallback data if needed
     let hasMissingFields = false;
     for (const field of requiredFields) {
-      if (!parsedData[field.id]) {
+      if (!parsedData[field.id] && !defaultValues[field.id]) {
         console.warn(`Generated data is missing required field: ${field.id}, using fallback`);
         hasMissingFields = true;
       }
@@ -254,7 +295,10 @@ export const generateStudentData = async (cardTemplate: CardTemplate, useShortPr
     // If we have missing fields (likely due to MAX_TOKENS), merge with fallback data
     if (hasMissingFields) {
       const fallbackData = generateFallbackData(cardTemplate);
-      parsedData = { ...fallbackData, ...parsedData }; // Prefer AI data where available
+      parsedData = { ...fallbackData, ...defaultValues, ...parsedData }; // Priority: AI > defaults > fallback
+    } else {
+      // Merge với defaultValues (defaultValues không được ghi đè)
+      parsedData = { ...parsedData, ...defaultValues };
     }
 
     // Validate and fix specific field formats
@@ -263,31 +307,41 @@ export const generateStudentData = async (cardTemplate: CardTemplate, useShortPr
     // Add random avatar if photo field exists
     await addRandomAvatarIfNeeded(parsedData, cardTemplate);
 
+    // Cache the successful result
+    dataCache.set(cacheKey, { data: parsedData, timestamp: Date.now() });
+    console.log('Data cached for future use');
+
     return parsedData;
 
   } catch (error) {
     console.error('Error generating student data:', error);
 
-    // If MAX_TOKENS error and we haven't tried the shortest prompt yet, retry
-    if (!shouldUseShortPrompt && error instanceof Error && error.message.includes('MAX_TOKENS')) {
-      console.log('Retrying with shortest prompt due to MAX_TOKENS error...');
-      try {
-        return await generateStudentData(cardTemplate, true);
-      } catch (retryError) {
-        console.error('Retry with shortest prompt also failed:', retryError);
+    // Xử lý các loại lỗi khác nhau
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        console.warn(`Request was aborted due to timeout (${TIMEOUT_DURATION}ms)`);
+      } else if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
+        console.warn(`Request timed out after ${TIMEOUT_DURATION}ms`);
+      } else if (error.message.includes('API timeout')) {
+        console.warn(`API request timed out after ${TIMEOUT_DURATION}ms`);
+      } else {
+        console.error('Unexpected error:', error.message);
       }
     }
 
-    // Show user-friendly error message for MAX_TOKENS
-    if (error instanceof Error && error.message.includes('MAX_TOKENS')) {
-      console.warn('AI response was truncated due to length limits. Using generated fallback data.');
+    // Retry logic với exponential backoff (chỉ retry 1 lần để tránh chờ quá lâu)
+    if (retryCount < 1 && error instanceof Error && 
+        (error.name === 'AbortError' || error.message.includes('timeout'))) {
+      console.log(`Retrying with shorter prompt in 1500ms...`);
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Giảm delay từ 2000 xuống 1500
+      return generateStudentDataInternal(cardTemplate, true, retryCount + 1); // Force short prompt for retry
     }
 
-    // Fallback: generate random data if API fails
-    const fallbackData = await generateFallbackDataWithAvatar(cardTemplate);
-    return fallbackData;
+    // Immediate fallback for timeout or API errors
+    console.log('Using immediate fallback data due to error...');
+    return generateFallbackData(cardTemplate);
   }
-};
+}; // End of generateStudentDataInternal
 
 // Helper function to add random avatar if photo field exists
 const addRandomAvatarIfNeeded = async (data: StudentData, cardTemplate: CardTemplate) => {
@@ -441,7 +495,18 @@ export const generateFallbackData = (cardTemplate: CardTemplate): StudentData =>
       return; // Skip degree in first pass
     }
 
+    // Ưu tiên sử dụng defaultValue nếu có (đặc biệt cho readonly fields)
+    if (field.defaultValue) {
+      fallbackData[field.id] = field.defaultValue;
+      return;
+    }
+
     switch (field.id) {
+      case 'school':
+        // Sử dụng university name từ template nếu không có defaultValue
+        fallbackData[field.id] = cardTemplate.university.name;
+        break;
+
       case 'name':
         fallbackData[field.id] = indianNames[Math.floor(Math.random() * indianNames.length)];
         break;

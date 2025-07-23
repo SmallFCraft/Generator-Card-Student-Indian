@@ -21,6 +21,8 @@ export interface FormField {
   type: FormFieldType;
   placeholder?: string;
   required: boolean;
+  defaultValue?: string;
+  readonly?: boolean;
   validation?: {
     pattern?: string;
     minLength?: number;

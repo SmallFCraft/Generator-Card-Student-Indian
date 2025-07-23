@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Zap } from "lucide-react";
 import { StudentForm } from "./StudentForm";
 import { CardPreview } from "./CardPreview";
 import { CardSelector } from "./CardSelector";
@@ -49,6 +49,8 @@ export const StudentCardGenerator = () => {
     setIsGenerating(true);
     try {
       console.log("Starting auto-generation...");
+      
+      // Gọi generateStudentData trực tiếp - đã có timeout handling bên trong
       const generatedData = await generateStudentData(cardTemplate);
       console.log("Generated data:", generatedData);
 
@@ -60,19 +62,39 @@ export const StudentCardGenerator = () => {
     } catch (error) {
       console.error("Error generating data:", error);
 
-      // Try fallback data generation
+      // Immediate fallback
       try {
-        const { generateFallbackDataWithAvatar } = await import("@/lib/gemini");
-        const fallbackData = await generateFallbackDataWithAvatar(cardTemplate);
+        const { generateFallbackData } = await import("@/lib/gemini");
+        const fallbackData = generateFallbackData(cardTemplate);
         setStudentData(prev => ({
           ...prev,
           ...fallbackData
         }));
-        toast.warning("Used fallback data generation due to API error.");
+        toast.warning("Used quick fallback data generation.");
       } catch (fallbackError) {
-        console.error("Fallback generation also failed:", fallbackError);
+        console.error("Fallback generation failed:", fallbackError);
         toast.error("Failed to generate data. Please try again.");
       }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleQuickGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      console.log("Quick generating with fallback data...");
+      const { generateFallbackDataWithAvatar } = await import("@/lib/gemini");
+      const fallbackData = await generateFallbackDataWithAvatar(cardTemplate);
+      
+      setStudentData(prev => ({
+        ...prev,
+        ...fallbackData
+      }));
+      toast.success("Quick data generated instantly!");
+    } catch (error) {
+      console.error("Quick generation failed:", error);
+      toast.error("Failed to generate data. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -111,9 +133,23 @@ export const StudentCardGenerator = () => {
                 variant="outline"
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                {isGenerating ? "Generating..." : "Auto Generate"}
+                {isGenerating ? "Generating..." : "AI Generate"}
               </Button>
-
+              
+              <Button
+                onClick={handleQuickGenerate}
+                disabled={isGenerating}
+                className="flex-1"
+                variant="default"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                {isGenerating ? "Generating..." : "Quick Generate"}
+              </Button>
+            </div>
+            
+            <div className="text-xs text-gray-500 text-center">
+              <span className="font-medium">AI Generate:</span> Smart data with AI (slower) • 
+              <span className="font-medium"> Quick Generate:</span> Instant random data (faster)
             </div>
           </div>
         </CardContent>

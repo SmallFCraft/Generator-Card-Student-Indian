@@ -71,10 +71,21 @@ Tiện ích này được làm bởi Hung Vu : fb.com/hungvu25
       font-weight: 600;
     }
     
+    .card-generator-btn {
+      background: linear-gradient(135deg, #4CAF50, #388E3C) !important;
+      font-weight: 600;
+    }
+    
     .extract-btn:hover {
       background: linear-gradient(135deg, #ffb74d, #ff9800) !important;
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+    }
+    
+    .card-generator-btn:hover {
+      background: linear-gradient(135deg, #66BB6A, #4CAF50) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
     }
     
     .verify-btn:hover {
@@ -195,22 +206,28 @@ Tiện ích này được làm bởi Hung Vu : fb.com/hungvu25
   <div class="button-container">
     <button id="extractBtn" class="extract-btn">📋 Extract Info from Website</button>
     <button id="directVerifyBtn" class="verify-btn">🔐 Verify Google One</button>
+    <button id="cardGeneratorBtn" class="card-generator-btn">🎓 Open Card Generator</button>
   </div>
   
   <div id="status"></div>
   
   <div class="step">
-    <div class="step-title">📌 Bước 1: Extract Student Info</div>
-    <div class="step-desc">Click "📋 Extract Info from Website" để lấy thông tin từ student card</div>
+    <div class="step-title">📌 Bước 1: Create Student Card</div>
+    <div class="step-desc">Click "🎓 Open Card Generator" để tạo student card hoặc sử dụng bất kỳ trang web nào có form student</div>
   </div>
   
   <div class="step">
-    <div class="step-title">📌 Bước 2: Start Verification</div>
-    <div class="step-desc">Click "🔐 Verify Google One" để bắt đầu verification</div>
+    <div class="step-title">📌 Bước 2: Extract Student Info</div>
+    <div class="step-desc">Click "📋 Extract Info from Website" để tự động lấy thông tin từ form hoặc student card</div>
   </div>
   
   <div class="step">
-    <div class="step-title">📌 Bước 3: Tự động xử lý</div>
+    <div class="step-title">📌 Bước 3: Start Verification</div>
+    <div class="step-desc">Click "🔐 Verify Google One" để bắt đầu verification với thông tin đã extract</div>
+  </div>
+  
+  <div class="step">
+    <div class="step-title">📌 Bước 4: Tự động xử lý</div>
     <div class="step-desc">Extension tự động mở Google One và điền form SheerID</div>
   </div>
 

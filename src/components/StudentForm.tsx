@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,23 @@ interface StudentFormProps {
 
 export const StudentForm = ({ studentData, setStudentData, cardTemplate }: StudentFormProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Set default values when component mounts or template changes
+  useEffect(() => {
+    setStudentData(prev => {
+      const updated = { ...prev };
+      let hasChanges = false;
+
+      cardTemplate.formFields.forEach(field => {
+        if (field.defaultValue && (!updated[field.id] || updated[field.id] === '')) {
+          updated[field.id] = field.defaultValue;
+          hasChanges = true;
+        }
+      });
+
+      return hasChanges ? updated : prev;
+    });
+  }, [cardTemplate, setStudentData]);
 
   const handleInputChange = (fieldId: string, value: string) => {
     setStudentData(prev => ({
@@ -132,8 +149,12 @@ export const StudentForm = ({ studentData, setStudentData, cardTemplate }: Stude
             <Label htmlFor={field.id}>
               {field.label} {field.required && '*'}
             </Label>
-            <Select value={value} onValueChange={(newValue) => handleInputChange(field.id, newValue)}>
-              <SelectTrigger>
+            <Select 
+              value={value} 
+              onValueChange={(newValue) => handleInputChange(field.id, newValue)}
+              disabled={field.readonly}
+            >
+              <SelectTrigger className={field.readonly ? "bg-gray-50 text-gray-500" : ""}>
                 <SelectValue placeholder={field.placeholder || `Select ${field.label}`} />
               </SelectTrigger>
               <SelectContent>
@@ -214,6 +235,9 @@ export const StudentForm = ({ studentData, setStudentData, cardTemplate }: Stude
               value={value}
               onChange={(e) => handleInputChange(field.id, e.target.value)}
               required={field.required}
+              readOnly={field.readonly}
+              disabled={field.readonly}
+              className={field.readonly ? "bg-gray-50 text-gray-500 cursor-not-allowed" : ""}
               min={field.validation?.min}
               max={field.validation?.max}
               minLength={field.validation?.minLength}
