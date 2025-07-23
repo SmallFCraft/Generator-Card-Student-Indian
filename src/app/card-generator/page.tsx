@@ -7,6 +7,9 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Download, Sparkles, FileText } from 'lucide-react';
+import { generateStudentData, generateFallbackDataWithAvatar } from '@/lib/gemini';
+import { getCardTemplate } from '@/config/cardTemplates';
+import { CardType } from '@/types/card';
 
 // Types
 interface University {
@@ -209,6 +212,7 @@ export default function CardGeneratorPage() {
   const [cardGenerated, setCardGenerated] = useState(false);
   const [showShineEffect, setShowShineEffect] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const hasGeneratedRef = useRef(false); // Track if initial generation has happened
 
   // Utility functions
   const getRandomElement = (array: unknown[]) => {
@@ -255,7 +259,30 @@ export default function CardGeneratorPage() {
     return validDate.toLocaleDateString('en-GB');
   };
 
-  // Get random student photo
+  // Function to validate image URL
+  const validateImageUrl = (url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = document.createElement('img');
+      img.crossOrigin = 'anonymous';
+
+      img.onload = () => {
+        resolve(url);
+      };
+
+      img.onerror = () => {
+        reject(new Error(`Failed to load image: ${url}`));
+      };
+
+      // Set timeout for image loading
+      setTimeout(() => {
+        reject(new Error(`Image loading timeout: ${url}`));
+      }, 5000);
+
+      img.src = url;
+    });
+  };
+
+  // Get random student photo with fallback
   const getRandomStudentPhoto = async () => {
     try {
       const response = await fetch('/api/load-faces', {
@@ -266,7 +293,7 @@ export default function CardGeneratorPage() {
         },
         body: JSON.stringify({
           "type": "R",
-          "age": "21-35", 
+          "age": "21-35",
           "race": "asian",
           "emotion": "none"
         })
@@ -274,40 +301,88 @@ export default function CardGeneratorPage() {
 
       if (response.ok) {
         const data = await response.json();
-        
+
         if (data.fc && data.fc.length > 0) {
-          const randomIndex = Math.floor(Math.random() * data.fc.length);
-          const imageUrl = data.fc[randomIndex];
-          return imageUrl;
-        } else {
-          throw new Error('No images in response');
+          // Try to find a working image URL
+          for (const imageUrl of data.fc) {
+            try {
+              // If it's a data URL (placeholder), use it directly
+              if (imageUrl.startsWith('data:')) {
+                return imageUrl;
+              }
+
+              // For external URLs, validate them
+              await validateImageUrl(imageUrl);
+              return imageUrl;
+            } catch (error) {
+              console.warn(`Image validation failed for ${imageUrl}:`, error);
+              continue; // Try next image
+            }
+          }
+
+          // If no valid external images found, use first placeholder
+          const fallbackImage = data.fc.find((url: string) => url.startsWith('data:'));
+          if (fallbackImage) {
+            return fallbackImage;
+          }
         }
+
+        throw new Error('No valid images found');
       } else {
         const errorData = await response.json();
         throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
       }
     } catch (error) {
-      throw error;
+      console.error('Error getting student photo:', error);
+      // Return a default placeholder image
+      return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlN0dWRlbnQ8L3RleHQ+PC9zdmc+';
     }
+  };
+
+  // Create a mock card template for Gemini generation
+  const createMockCardTemplate = (university: University) => {
+    // Use existing template structure from config
+    const baseTemplate = getCardTemplate(CardType.BABU_BANARASI_DAS);
+    return {
+      ...baseTemplate,
+      university: {
+        name: university.name,
+        code: university.shortName
+      }
+    };
   };
 
   const generateStudentCard = async () => {
     setIsGenerating(true);
-    
+
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
+      // Select random university
       const university = getRandomElement(universities) as University;
-      const studentName = getRandomElement(indianNames) as string;
-      const department = getRandomElement(departments) as string;
-      const dob = generateRandomDate();
-      const course = generateCourse();
-      const studentClass = generateClass();
-      const studentID = generateStudentID(university.shortName);
-      const validUntil = generateValidUntil();
+
+      // Create mock template for Gemini
+      const mockTemplate = createMockCardTemplate(university);
+
+      // Generate consistent data using Gemini AI
+      let studentData;
+      let generationMethod = '';
+      try {
+        console.log('🤖 Generating student data with Gemini...');
+        studentData = await generateStudentData(mockTemplate);
+        generationMethod = 'AI';
+      } catch (error) {
+        console.warn('Gemini generation failed, using fallback:', error);
+        studentData = await generateFallbackDataWithAvatar(mockTemplate);
+        generationMethod = 'fallback';
+      }
 
       // Get student photo
       const studentPhoto = await getRandomStudentPhoto();
+
+      // Generate additional data that Gemini might not provide
+      const studentID = studentData.studentId || generateStudentID(university.shortName);
+      const validUntil = studentData.validUntil || generateValidUntil();
 
       // Update card information
       const universityNameEl = document.getElementById('university-name');
@@ -323,11 +398,11 @@ export default function CardGeneratorPage() {
       const barcodeEl = document.getElementById('barcode') as HTMLImageElement;
 
       if (universityNameEl) universityNameEl.textContent = university.name;
-      if (studentNameEl) studentNameEl.textContent = studentName;
-      if (studentDobEl) studentDobEl.textContent = dob;
-      if (studentCourseEl) studentCourseEl.textContent = course;
-      if (studentClassEl) studentClassEl.textContent = studentClass;
-      if (studentDepartmentEl) studentDepartmentEl.textContent = department;
+      if (studentNameEl) studentNameEl.textContent = studentData.name || 'Student Name';
+      if (studentDobEl) studentDobEl.textContent = studentData.dateOfBirth || generateRandomDate();
+      if (studentCourseEl) studentCourseEl.textContent = studentData.course || generateCourse();
+      if (studentClassEl) studentClassEl.textContent = studentData.class || generateClass();
+      if (studentDepartmentEl) studentDepartmentEl.textContent = studentData.department || getRandomElement(departments) as string;
       if (studentIdEl) studentIdEl.innerHTML = `🆔 Student ID: ${studentID}`;
       if (validUntilEl) validUntilEl.textContent = validUntil;
       
@@ -346,7 +421,12 @@ export default function CardGeneratorPage() {
       setShowShineEffect(true);
       setTimeout(() => setShowShineEffect(false), 2000); // Remove after 2 seconds
 
-      toast.success('🎉 Student card generated successfully!');
+      // Show appropriate success message based on generation method
+      if (generationMethod === 'AI') {
+        toast.success('🤖 Student card generated with AI!');
+      } else {
+        toast.success('📝 Student card generated with fallback data!');
+      }
 
     } catch (error) {
       console.error('Generation error:', error);
@@ -497,9 +577,28 @@ export default function CardGeneratorPage() {
     }
   };
 
-  // Generate initial card on load
+  // Generate initial card on load (with stronger protection against multiple executions)
   useEffect(() => {
-    generateStudentCard();
+    // Use a more robust check to prevent multiple generations
+    const hasGenerated = sessionStorage.getItem('cardGenerated');
+
+    if (hasGeneratedRef.current || hasGenerated) {
+      console.log('Initial generation already done, skipping...');
+      return;
+    }
+
+    hasGeneratedRef.current = true;
+    sessionStorage.setItem('cardGenerated', 'true');
+    console.log('Starting initial card generation...');
+
+    // Add a small delay to avoid race conditions
+    const timer = setTimeout(() => {
+      generateStudentCard();
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -517,16 +616,19 @@ export default function CardGeneratorPage() {
             </Link>
           </div>
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            🎓 Quick Card Generator
+            🤖 AI Card Generator
           </h1>
           <p className="text-gray-600">
-            Create professional student ID cards for Indian Universities
+            Create professional student ID cards with AI-generated realistic data
           </p>
         </div>
         
         {/* Controls */}
         <Card className="p-6 mb-8 bg-white/80 backdrop-blur-sm">
-          <h2 className="text-xl font-semibold mb-4 text-center">🚀 Card Generator</h2>
+          <h2 className="text-xl font-semibold mb-4 text-center">🤖 AI Card Generator</h2>
+
+          
+
           <div className="flex gap-4 justify-center flex-wrap">
             <Button
               onClick={generateStudentCard}
@@ -535,7 +637,7 @@ export default function CardGeneratorPage() {
               size="lg"
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              {isGenerating ? "Generating..." : "🎲 Generate New Card"}
+              {isGenerating ? "Generating..." : "🤖 Generate with AI"}
             </Button>
             <Button
               onClick={downloadCard}
