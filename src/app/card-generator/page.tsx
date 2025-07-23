@@ -356,47 +356,7 @@ export default function CardGeneratorPage() {
     }
   };
 
-  // Helper function to convert oklch colors to hex for html2canvas compatibility
-  const applyCompatibleColors = (element: HTMLElement) => {
-    const colorMap = {
-      '--background': '#ffffff',
-      '--foreground': '#252525',
-      '--card': '#ffffff',
-      '--card-foreground': '#252525',
-      '--popover': '#ffffff',
-      '--popover-foreground': '#252525',
-      '--primary': '#343434',
-      '--primary-foreground': '#fbfbfb',
-      '--secondary': '#f7f7f7',
-      '--secondary-foreground': '#343434',
-      '--muted': '#f7f7f7',
-      '--muted-foreground': '#8e8e8e',
-      '--accent': '#f7f7f7',
-      '--accent-foreground': '#343434',
-      '--destructive': '#dc2626',
-      '--border': '#ebebeb',
-      '--input': '#ebebeb',
-      '--ring': '#b5b5b5',
-      '--chart-1': '#f59e0b',
-      '--chart-2': '#3b82f6',
-      '--chart-3': '#6366f1',
-      '--chart-4': '#10b981',
-      '--chart-5': '#f97316',
-      '--sidebar': '#fbfbfb',
-      '--sidebar-foreground': '#252525',
-      '--sidebar-primary': '#343434',
-      '--sidebar-primary-foreground': '#fbfbfb',
-      '--sidebar-accent': '#f7f7f7',
-      '--sidebar-accent-foreground': '#343434',
-      '--sidebar-border': '#ebebeb',
-      '--sidebar-ring': '#b5b5b5'
-    };
 
-    // Apply hex colors as CSS custom properties
-    Object.entries(colorMap).forEach(([property, value]) => {
-      element.style.setProperty(property, value);
-    });
-  };
 
   const downloadCard = async () => {
     if (!cardRef.current) return;
@@ -404,8 +364,8 @@ export default function CardGeneratorPage() {
     setIsDownloading(true);
 
     try {
-      // Dynamic import html2canvas
-      const html2canvas = (await import('html2canvas')).default;
+      // Dynamic import html2canvas-pro
+      const html2canvas = (await import('html2canvas-pro')).default;
 
       // Create a clean copy of the card for capture
       const originalCard = cardRef.current;
@@ -417,9 +377,6 @@ export default function CardGeneratorPage() {
       cardClone.style.boxShadow = 'none';
       cardClone.style.filter = 'none';
 
-      // Apply compatible colors to fix oklch parsing issues
-      applyCompatibleColors(cardClone);
-
       // Temporarily add clone to DOM for capture
       cardClone.style.position = 'absolute';
       cardClone.style.left = '-9999px';
@@ -429,7 +386,7 @@ export default function CardGeneratorPage() {
       const canvas = await html2canvas(cardClone, {
         useCORS: true,
         allowTaint: true,
-        background: '#ffffff',
+        backgroundColor: '#ffffff',
         logging: false
       });
 
@@ -468,7 +425,7 @@ export default function CardGeneratorPage() {
 
     try {
       // Dynamic imports
-      const html2canvas = (await import('html2canvas')).default;
+      const html2canvas = (await import('html2canvas-pro')).default;
       const jsPDF = (await import('jspdf')).default;
 
       // Create a clean copy of the card for capture
@@ -481,9 +438,6 @@ export default function CardGeneratorPage() {
       cardClone.style.boxShadow = 'none';
       cardClone.style.filter = 'none';
 
-      // Apply compatible colors to fix oklch parsing issues
-      applyCompatibleColors(cardClone);
-
       // Temporarily add clone to DOM for capture
       cardClone.style.position = 'absolute';
       cardClone.style.left = '-9999px';
@@ -493,7 +447,7 @@ export default function CardGeneratorPage() {
       const canvas = await html2canvas(cardClone, {
         useCORS: true,
         allowTaint: true,
-        background: '#ffffff',
+        backgroundColor: '#ffffff',
         logging: false
       });
 
