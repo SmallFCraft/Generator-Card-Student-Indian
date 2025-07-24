@@ -30,8 +30,9 @@ export const StudentCardGenerator = () => {
   const [studentData, setStudentData] = useState<StudentData>(
     initializeStudentData(defaultTemplate)
   );
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGenerated, setIsGenerated] = useState(false);
 
   // Handle card type selection
   const handleCardTypeChange = (newCardType: CardType, newTemplate: CardTemplate) => {
@@ -41,6 +42,9 @@ export const StudentCardGenerator = () => {
     // Reset student data to match new template fields
     const newStudentData = initializeStudentData(newTemplate);
     setStudentData(newStudentData);
+
+    // Reset generated state when switching templates
+    setIsGenerated(false);
 
     toast.success(`Switched to ${newTemplate.name}`);
   };
@@ -58,6 +62,7 @@ export const StudentCardGenerator = () => {
         ...prev,
         ...generatedData
       }));
+      setIsGenerated(true); // Mark as generated
       toast.success("Student data generated successfully!");
     } catch (error) {
       console.error("Error generating data:", error);
@@ -70,6 +75,7 @@ export const StudentCardGenerator = () => {
           ...prev,
           ...fallbackData
         }));
+        setIsGenerated(true); // Mark as generated
         toast.warning("Used quick fallback data generation.");
       } catch (fallbackError) {
         console.error("Fallback generation failed:", fallbackError);
@@ -91,6 +97,7 @@ export const StudentCardGenerator = () => {
         ...prev,
         ...fallbackData
       }));
+      setIsGenerated(true); // Mark as generated
       toast.success("Quick data generated instantly!");
     } catch (error) {
       console.error("Quick generation failed:", error);
@@ -164,7 +171,7 @@ export const StudentCardGenerator = () => {
           <CardPreview
             studentData={studentData}
             cardTemplate={cardTemplate}
-            
+            isGenerated={isGenerated}
           />
         </CardContent>
       </Card>

@@ -133,30 +133,66 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
-// Lắng nghe tab mới được tạo (cho sign-in)
+// Whitelist các domain được phép đóng tab tự động
+const ALLOWED_CLOSE_DOMAINS = [
+  "sheerid.com",
+  "services.sheerid.com",
+  "accounts.google.com",
+];
+
+// Lắng nghe tab mới được tạo (cho sign-in) - CHỈ đóng tab trong whitelist
 chrome.tabs.onCreated.addListener(tab => {
-  console.log("Tab mới được tạo:", tab.id);
+  console.log("🆕 Tab mới được tạo:", tab.id);
 
   // Đợi tab load xong rồi check URL
   setTimeout(() => {
     chrome.tabs.get(tab.id, updatedTab => {
+      if (!updatedTab || !updatedTab.url) {
+        console.log("⚠️ Tab không có URL hoặc đã bị đóng:", tab.id);
+        return;
+      }
+
+      console.log("🔍 Kiểm tra URL tab mới:", updatedTab.url);
+
+      // Kiểm tra xem URL có trong whitelist không
+      const isAllowedDomain = ALLOWED_CLOSE_DOMAINS.some(domain =>
+        updatedTab.url.includes(domain)
+      );
+
       if (
-        updatedTab &&
-        updatedTab.url &&
+        isAllowedDomain &&
         (updatedTab.url.includes("login") ||
           updatedTab.url.includes("signin") ||
           updatedTab.url.includes("auth") ||
           updatedTab.url.includes("sso"))
       ) {
-        console.log("🔍 Phát hiện tab sign-in:", updatedTab.url);
-        console.log("🚪 Đóng tab sign-in sau 3 giây...");
+        console.log(
+          "🎯 Tab sign-in trong whitelist phát hiện:",
+          updatedTab.url
+        );
+        console.log("🚪 Sẽ đóng tab sign-in sau 3 giây...");
 
-        // Đóng tab sau 3 giây
+        // Đóng tab sau 3 giây với error handling
         setTimeout(() => {
           chrome.tabs.remove(tab.id, () => {
-            console.log("✅ Đã đóng tab sign-in");
+            if (chrome.runtime.lastError) {
+              console.log(
+                "⚠️ Không thể đóng tab (có thể đã đóng):",
+                chrome.runtime.lastError.message
+              );
+            } else {
+              console.log(
+                "✅ Đã đóng tab sign-in verification:",
+                updatedTab.url
+              );
+            }
           });
         }, 3000);
+      } else {
+        console.log(
+          "✋ Tab không trong whitelist hoặc không phải sign-in, bỏ qua:",
+          updatedTab.url
+        );
       }
     });
   }, 2000);

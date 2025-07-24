@@ -104,9 +104,20 @@ document.addEventListener("DOMContentLoaded", function () {
             "✅ Đang mở Google One... Vui lòng hoàn tất verification!"
           );
 
-          // Tự động đóng popup sau 3 giây
+          // Tự động đóng CHỈ popup extension sau 3 giây
           setTimeout(() => {
-            window.close();
+            // Kiểm tra xem đây có phải là popup extension không
+            if (chrome.extension && chrome.extension.getViews) {
+              const views = chrome.extension.getViews({ type: "popup" });
+              if (views.length > 0 && views[0] === window) {
+                window.close(); // Chỉ đóng popup extension
+              }
+            } else {
+              // Fallback: chỉ đóng nếu window có kích thước nhỏ (popup)
+              if (window.outerWidth < 500 && window.outerHeight < 600) {
+                window.close();
+              }
+            }
           }, 3000);
         } else {
           showStatus(
@@ -388,9 +399,20 @@ document.addEventListener("DOMContentLoaded", function () {
       // Hiển thị thông báo
       showStatus("success", "🎓 Opening Card Generator...");
 
-      // Đóng popup sau khi mở tab mới
+      // Đóng CHỈ popup extension, không đóng tab/window khác
       setTimeout(() => {
-        window.close();
+        // Kiểm tra xem đây có phải là popup extension không
+        if (chrome.extension && chrome.extension.getViews) {
+          const views = chrome.extension.getViews({ type: "popup" });
+          if (views.length > 0 && views[0] === window) {
+            window.close(); // Chỉ đóng popup extension
+          }
+        } else {
+          // Fallback: chỉ đóng nếu window có kích thước nhỏ (popup)
+          if (window.outerWidth < 500 && window.outerHeight < 600) {
+            window.close();
+          }
+        }
       }, 500);
     });
   }

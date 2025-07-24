@@ -7,9 +7,10 @@ import { toast } from "sonner";
 interface CardPreviewProps {
   studentData: StudentData;
   cardTemplate: CardTemplate;
+  isGenerated?: boolean; // New prop to track if card has been generated
 }
 
-export const CardPreview = ({ studentData, cardTemplate }: CardPreviewProps) => {
+export const CardPreview = ({ studentData, cardTemplate, isGenerated = false }: CardPreviewProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [templateLoaded, setTemplateLoaded] = useState(false);
   const [templateImage, setTemplateImage] = useState<HTMLImageElement | null>(null);
@@ -20,7 +21,7 @@ export const CardPreview = ({ studentData, cardTemplate }: CardPreviewProps) => 
     setIsClient(true);
   }, []);
 
-  // Load template image from API
+  // Load template image from API or demo image
   useEffect(() => {
     if (!isClient || !cardTemplate) return;
 
@@ -32,9 +33,16 @@ export const CardPreview = ({ studentData, cardTemplate }: CardPreviewProps) => 
     img.onerror = () => {
       toast.error("Failed to load card template");
     };
-    // Load template from secure API route
-    img.src = `/api/template/${cardTemplate.id}`;
-  }, [isClient, cardTemplate]);
+
+    // Use demo image if not generated yet, otherwise use actual template
+    if (isGenerated) {
+      // Load actual template from secure API route
+      img.src = `/api/template/${cardTemplate.id}`;
+    } else {
+      // Load demo image from secure API route
+      img.src = `/api/demo/${cardTemplate.id}`;
+    }
+  }, [isClient, cardTemplate, isGenerated]);
 
   // Helper function to draw text with proper positioning and styling
   const drawText = (
@@ -100,45 +108,48 @@ export const CardPreview = ({ studentData, cardTemplate }: CardPreviewProps) => 
     // Draw template background
     ctx.drawImage(templateImage, 0, 0, canvas.width, canvas.height);
 
-    // Draw text fields based on template configuration
-    cardTemplate.formFields.forEach((field) => {
-      if (field.id === 'photo') return; // Skip photo field
+    // Only draw text and photo if card has been generated
+    if (isGenerated) {
+      // Draw text fields based on template configuration
+      cardTemplate.formFields.forEach((field) => {
+        if (field.id === 'photo') return; // Skip photo field
 
-      const value = studentData[field.id];
-      const position = cardTemplate.textPositions[field.id];
+        const value = studentData[field.id];
+        const position = cardTemplate.textPositions[field.id];
 
-      if (value && position) {
-        drawText(ctx, value, position);
-      }
-    });
+        if (value && position) {
+          drawText(ctx, value, position);
+        }
+      });
 
-    // Draw student photo if provided
-    if (studentData.photo && cardTemplate.photoPosition) {
-      try {
-        const photoImg = new Image();
-        photoImg.onload = () => {
-          const { x, y, width, height, borderRadius } = cardTemplate.photoPosition;
+      // Draw student photo if provided
+      if (studentData.photo && cardTemplate.photoPosition) {
+        try {
+          const photoImg = new Image();
+          photoImg.onload = () => {
+            const { x, y, width, height, borderRadius } = cardTemplate.photoPosition;
 
-          // Draw photo with optional rounded corners
-          ctx.save();
-          ctx.beginPath();
+            // Draw photo with optional rounded corners
+            ctx.save();
+            ctx.beginPath();
 
-          if (borderRadius && typeof ctx.roundRect === 'function') {
-            ctx.roundRect(x, y, width, height, borderRadius);
-          } else {
-            ctx.rect(x, y, width, height);
-          }
+            if (borderRadius && typeof ctx.roundRect === 'function') {
+              ctx.roundRect(x, y, width, height, borderRadius);
+            } else {
+              ctx.rect(x, y, width, height);
+            }
 
-          ctx.clip();
-          ctx.drawImage(photoImg, x, y, width, height);
-          ctx.restore();
-        };
-        photoImg.src = studentData.photo;
-      } catch (error) {
-        console.error("Error drawing photo:", error);
+            ctx.clip();
+            ctx.drawImage(photoImg, x, y, width, height);
+            ctx.restore();
+          };
+          photoImg.src = studentData.photo;
+        } catch (error) {
+          console.error("Error drawing photo:", error);
+        }
       }
     }
-  }, [studentData, templateImage, cardTemplate]);
+  }, [studentData, templateImage, cardTemplate, isGenerated]);
 
   // Draw card when data changes
   useEffect(() => {
