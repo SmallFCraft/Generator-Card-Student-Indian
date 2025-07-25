@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, Zap, ArrowRight } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // Dynamically import StudentCardGenerator with no SSR
 const StudentCardGenerator = dynamic(
@@ -24,13 +25,16 @@ const StudentCardGenerator = dynamic(
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="container mx-auto max-w-6xl">
-        <header className="text-center py-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+        <header className="text-center py-8 relative">
+          <div className="absolute top-4 right-4">
+            <ThemeToggle />
+          </div>
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">
             Multi-University Student ID Card Generator
           </h1>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
             Generate realistic student ID cards for multiple Indian universities
           </p>
 

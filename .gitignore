@@ -43,3 +43,6 @@ next-env.d.ts
 # zip
 *.zip
 *.rar
+
+# Chrome extension (separate project)
+/ExtensionGetStudent

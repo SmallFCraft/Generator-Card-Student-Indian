@@ -76,9 +76,12 @@ npm run dev
 
 ## API Endpoints
 
+- `/api/avatars` - Get available avatar images from the server
 - `/api/barcode` - Generate SVG barcodes for student cards
-- `/api/load-faces` - Get random student photos from Random User API
+- `/api/demo/[cardType]` - Serve demo images for card templates
 - `/api/image/[base64]` - Serve base64 encoded images with proper headers
+- `/api/load-faces` - Get random student photos from Random User API
+- `/api/template/[cardType]` - Serve actual card template images (secure)
 
 ### Getting a Gemini API Key
 
@@ -174,8 +177,14 @@ The system is designed to be easily extensible. To add a new university:
 4. Canvas renders card → CardPreview (using template config)
 5. User downloads → High-quality PNG export
 
+## Chrome Extension
+
+This project includes a Chrome extension (`ExtensionGetStudent/`) that automatically verifies student eligibility for Google One Student and fills SheerID forms. The extension is a separate component that can work alongside the web app.
+
+See `ExtensionGetStudent/README.md` for installation and usage instructions.
+
 ## Troubleshooting
 
 1. **API Key Error**: Check your Gemini API key in `.env.local`
-2. **Template Not Loading**: Ensure `card-student.png` is in `public` folder
+2. **Template Not Loading**: Ensure template images are in `public/img/phoi/` folder
 3. **Build Errors**: Verify all dependencies are installed

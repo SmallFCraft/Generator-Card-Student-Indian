@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { StudentData, CardTemplate, TextPosition } from "@/types/card";
 import { toast } from "sonner";
+import { CardPreviewSkeleton } from "@/components/loading-states";
 
 interface CardPreviewProps {
   studentData: StudentData;
@@ -226,12 +227,7 @@ export const CardPreview = ({ studentData, cardTemplate, isGenerated = false }: 
         </div>
       )}
       
-      {!templateLoaded && (
-        <div className="text-center text-gray-500 py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p>Loading card template...</p>
-        </div>
-      )}
+      {!templateLoaded && <CardPreviewSkeleton />}
 
       {templateLoaded && !Object.values(studentData).some(value => value && value !== '') && (
         <div className="text-center text-gray-500 py-8">

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Sparkles, Zap } from "lucide-react";
+import { AIGenerationProgress, QuickGenerationLoader } from "@/components/loading-states";
 import { StudentForm } from "./StudentForm";
 import { CardPreview } from "./CardPreview";
 import { CardSelector } from "./CardSelector";
@@ -33,6 +34,9 @@ export const StudentCardGenerator = () => {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGenerated, setIsGenerated] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStatus, setGenerationStatus] = useState("");
+  const [generationType, setGenerationType] = useState<"ai" | "quick" | null>(null);
 
   // Handle card type selection
   const handleCardTypeChange = (newCardType: CardType, newTemplate: CardTemplate) => {
@@ -51,12 +55,31 @@ export const StudentCardGenerator = () => {
 
   const handleAutoGenerate = async () => {
     setIsGenerating(true);
+    setGenerationType("ai");
+    setGenerationProgress(0);
+    setGenerationStatus("Initializing AI generation...");
+
     try {
       console.log("Starting auto-generation...");
-      
+
+      // Simulate progress updates
+      setGenerationProgress(20);
+      setGenerationStatus("Connecting to AI service...");
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setGenerationProgress(40);
+      setGenerationStatus("Generating student data...");
+
       // Gọi generateStudentData trực tiếp - đã có timeout handling bên trong
       const generatedData = await generateStudentData(cardTemplate);
       console.log("Generated data:", generatedData);
+
+      setGenerationProgress(80);
+      setGenerationStatus("Finalizing data...");
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setGenerationProgress(100);
+      setGenerationStatus("Complete!");
 
       setStudentData(prev => ({
         ...prev,
@@ -83,16 +106,25 @@ export const StudentCardGenerator = () => {
       }
     } finally {
       setIsGenerating(false);
+      setGenerationType(null);
+      setGenerationProgress(0);
+      setGenerationStatus("");
     }
   };
 
   const handleQuickGenerate = async () => {
     setIsGenerating(true);
+    setGenerationType("quick");
+
     try {
       console.log("Quick generating with fallback data...");
+
+      // Add a small delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       const { generateFallbackDataWithAvatar } = await import("@/lib/gemini");
       const fallbackData = await generateFallbackDataWithAvatar(cardTemplate);
-      
+
       setStudentData(prev => ({
         ...prev,
         ...fallbackData
@@ -104,6 +136,7 @@ export const StudentCardGenerator = () => {
       toast.error("Failed to generate data. Please try again.");
     } finally {
       setIsGenerating(false);
+      setGenerationType(null);
     }
   };
 
@@ -154,11 +187,23 @@ export const StudentCardGenerator = () => {
               </Button>
             </div>
             
-            <div className="text-xs text-gray-500 text-center">
-              <span className="font-medium">AI Generate:</span> Smart data with AI (slower) • 
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              <span className="font-medium">AI Generate:</span> Smart data with AI (slower) •
               <span className="font-medium"> Quick Generate:</span> Instant random data (faster)
             </div>
           </div>
+
+          {/* Loading States */}
+          {isGenerating && generationType === "ai" && (
+            <AIGenerationProgress
+              progress={generationProgress}
+              status={generationStatus}
+            />
+          )}
+
+          {isGenerating && generationType === "quick" && (
+            <QuickGenerationLoader />
+          )}
         </CardContent>
       </Card>
 

@@ -11,6 +11,8 @@ import { generateStudentData, generateFallbackDataWithAvatar } from '@/lib/gemin
 import { getCardTemplate } from '@/config/cardTemplates';
 import { CardType } from '@/types/card';
 
+// Dynamic imports are handled in individual functions for better performance
+
 // Types
 interface University {
   name: string;

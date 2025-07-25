@@ -33,6 +33,12 @@ export interface FormField {
   options?: { value: string; label: string }[]; // for select fields
 }
 
+// Interface for validation results
+export interface ValidationResult {
+  isValid: boolean;
+  errors: Record<string, string>;
+}
+
 // Interface for text positioning on card
 export interface TextPosition {
   x: number;
