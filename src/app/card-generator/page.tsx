@@ -10,6 +10,8 @@ import { ArrowLeft, Download, Sparkles, FileText, Send } from 'lucide-react';
 import { generateStudentData, generateFallbackDataWithAvatar } from '@/lib/gemini';
 import { getCardTemplate } from '@/config/cardTemplates';
 import { CardType } from '@/types/card';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { AIGenerationProgress, CardPreviewSkeleton } from '@/components/loading-states';
 
 // Dynamic imports are handled in individual functions for better performance
 
@@ -203,6 +205,9 @@ export default function CardGeneratorPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [cardGenerated, setCardGenerated] = useState(false);
   const [showShineEffect, setShowShineEffect] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStatus, setGenerationStatus] = useState("");
+  const [generationType, setGenerationType] = useState<"ai" | "quick" | null>(null);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const hasGeneratedRef = useRef(false); // Track if initial generation has happened
@@ -347,31 +352,53 @@ export default function CardGeneratorPage() {
 
   const generateStudentCard = async () => {
     setIsGenerating(true);
+    setGenerationType("ai");
+    setGenerationProgress(0);
+    setGenerationStatus("Initializing generation...");
 
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
+      setGenerationProgress(10);
+      setGenerationStatus("Selecting university...");
 
       // Select random university
       const university = getRandomElement(universities) as University;
+      setGenerationProgress(20);
+      setGenerationStatus("Creating template...");
 
       // Create mock template for Gemini
       const mockTemplate = createMockCardTemplate(university);
+      setGenerationProgress(30);
+      setGenerationStatus("Connecting to AI service...");
 
       // Generate consistent data using Gemini AI
       let studentData;
       let generationMethod = '';
       try {
         console.log('🤖 Generating student data with Gemini...');
+        setGenerationProgress(50);
+        setGenerationStatus("Generating student data with AI...");
         studentData = await generateStudentData(mockTemplate);
         generationMethod = 'AI';
+        setGenerationProgress(70);
+        setGenerationStatus("AI generation complete!");
       } catch (error) {
         console.warn('Gemini generation failed, using fallback:', error);
+        setGenerationStatus("AI failed, using quick generation...");
         studentData = await generateFallbackDataWithAvatar(mockTemplate);
         generationMethod = 'fallback';
+        setGenerationProgress(70);
+        setGenerationStatus("Quick generation complete!");
       }
+
+      setGenerationProgress(80);
+      setGenerationStatus("Loading student photo...");
 
       // Get student photo
       const studentPhoto = await getRandomStudentPhoto();
+
+      setGenerationProgress(90);
+      setGenerationStatus("Finalizing card data...");
 
       // Generate additional data that Gemini might not provide
       const studentID = studentData.studentId || generateStudentID(university.shortName);
@@ -390,8 +417,24 @@ export default function CardGeneratorPage() {
       const studentPhotoEl = document.getElementById('student-photo') as HTMLImageElement;
       const barcodeEl = document.getElementById('barcode') as HTMLImageElement;
 
-      if (universityNameEl) universityNameEl.textContent = university.name;
-      if (studentNameEl) studentNameEl.textContent = studentData.name || 'Student Name';
+      console.log('🔄 Updating DOM elements with new data:', {
+        university: university.name,
+        student: studentData.name,
+        dob: studentData.dateOfBirth,
+        course: studentData.course,
+        class: studentData.class,
+        department: studentData.department,
+        studentID: studentID
+      });
+
+      if (universityNameEl) {
+        universityNameEl.textContent = university.name;
+        console.log('✅ Updated university name:', university.name);
+      }
+      if (studentNameEl) {
+        studentNameEl.textContent = studentData.name || 'Student Name';
+        console.log('✅ Updated student name:', studentData.name);
+      }
       if (studentDobEl) studentDobEl.textContent = studentData.dateOfBirth || generateRandomDate();
       if (studentCourseEl) studentCourseEl.textContent = studentData.course || generateCourse();
       if (studentClassEl) studentClassEl.textContent = studentData.class || generateClass();
@@ -430,6 +473,14 @@ export default function CardGeneratorPage() {
 
 
 
+      setGenerationProgress(100);
+      setGenerationStatus("Card generation complete!");
+
+      // Mark card as generated and save to session
+      setCardGenerated(true);
+      hasGeneratedRef.current = true;
+      sessionStorage.setItem('cardGenerated', 'true');
+
       // Show appropriate success message based on generation method
       if (generationMethod === 'AI') {
         toast.success('🤖 Student card generated with AI!');
@@ -442,6 +493,9 @@ export default function CardGeneratorPage() {
       toast.error(`❌ Unable to generate student card. ${error}`);
     } finally {
       setIsGenerating(false);
+      setGenerationType(null);
+      setGenerationProgress(0);
+      setGenerationStatus("");
     }
   };
 
@@ -586,30 +640,55 @@ export default function CardGeneratorPage() {
     }
   };
 
-  // Generate initial card on load (with stronger protection against multiple executions)
+  // Initialize card state on load (without auto-generation)
   useEffect(() => {
-    // Use a more robust check to prevent multiple generations
+    // Check if there's existing card data
     const hasGenerated = sessionStorage.getItem('cardGenerated');
 
-    if (hasGeneratedRef.current || hasGenerated) {
-      console.log('Initial generation already done, skipping...');
-      return;
+    if (hasGenerated) {
+      console.log('Previous card data found, enabling buttons...');
+      setCardGenerated(true);
+      hasGeneratedRef.current = true;
+    } else {
+      console.log('No previous card data, waiting for user action...');
+      setCardGenerated(false);
+      hasGeneratedRef.current = false;
+    }
+  }, []);
+
+  // Helper function để tạo email domain từ tên trường (sync với Extension)
+  const getEmailDomainFromUniversity = (universityName: string): string => {
+    if (!universityName) return "student.edu.in";
+
+    const domainMap: Record<string, string> = {
+      "Indian Institute of Technology Bombay": "iitb.ac.in",
+      "Indian Institute of Technology Delhi": "iitd.ac.in",
+      "Indian Institute of Science Bangalore": "iisc.ac.in",
+      "Indian Institute of Technology Madras": "iitm.ac.in",
+      "Indian Institute of Technology Kanpur": "iitk.ac.in",
+      "Indian Institute of Technology Kharagpur": "iitkgp.ac.in",
+      "University of Delhi": "du.ac.in",
+      "Jawaharlal Nehru University": "jnu.ac.in",
+      "Indian Institute of Management Ahmedabad": "iima.ac.in",
+      "Banaras Hindu University": "bhu.ac.in",
+      "Manipal Academy of Higher Education": "manipal.edu",
+      "Babu Banarasi Das University": "bbditm.edu.in",
+    };
+
+    // Check for exact match
+    if (domainMap[universityName]) {
+      return domainMap[universityName];
     }
 
-    hasGeneratedRef.current = true;
-    sessionStorage.setItem('cardGenerated', 'true');
-    console.log('Starting initial card generation...');
+    // Check for partial matches
+    for (const [key, domain] of Object.entries(domainMap)) {
+      if (universityName.includes(key) || key.includes(universityName)) {
+        return domain;
+      }
+    }
 
-    // Add a small delay to avoid race conditions
-    const timer = setTimeout(() => {
-      generateStudentCard();
-    }, 100);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return "student.edu.in";
+  };
 
   // Function để gửi data cho extension
   const sendToExtension = () => {
@@ -631,16 +710,25 @@ export default function CardGeneratorPage() {
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || firstName;
     
-    // Tạo email từ tên và ID
+    // Tạo email từ tên và ID với domain mapping
     const emailPrefix = `${firstName.toLowerCase()}.${studentId.toLowerCase().replace(/[^a-z0-9]/gi, '')}`;
-    const email = `${emailPrefix}@student.edu.in`;
+    const emailDomain = getEmailDomainFromUniversity(universityName);
+    const email = `${emailPrefix}@${emailDomain}`;
     
     const studentInfo = {
       school: universityName,
       firstName: firstName,
       lastName: lastName,
+      studentName: `${firstName} ${lastName}`.trim(),
+      studentId: studentId,
       email: email,
-      dateOfBirth: studentDob
+      dateOfBirth: studentDob,
+      dob: studentDob, // Keep for backward compatibility
+      course: '',
+      department: '',
+      address: '',
+      mobileNumber: '',
+      fatherName: ''
     };
     
     console.log('🔍 Sending to extension:', studentInfo);
@@ -672,10 +760,13 @@ export default function CardGeneratorPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
       <div className="container mx-auto max-w-4xl">
         {/* Header */}
-        <div className="text-center py-8">
+        <div className="text-center py-8 relative">
+          <div className="absolute top-0 right-0">
+            <ThemeToggle />
+          </div>
           <div className="flex items-center justify-center gap-4 mb-4">
             <Link href="/">
               <Button variant="outline" size="sm">
@@ -684,19 +775,27 @@ export default function CardGeneratorPage() {
               </Button>
             </Link>
           </div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">
             🤖 AI Card Generator
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             Create professional student ID cards with AI-generated realistic data
           </p>
         </div>
-        
-        {/* Controls */}
-        <Card className="p-6 mb-8 bg-white/80 backdrop-blur-sm">
-          <h2 className="text-xl font-semibold mb-4 text-center">🤖 AI Card Generator</h2>
 
-          
+        {/* Controls */}
+        <Card className="p-6 mb-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+          <h2 className="text-xl font-semibold mb-4 text-center text-gray-800 dark:text-gray-100">🤖 AI Card Generator</h2>
+
+          {/* Loading States */}
+          {isGenerating && generationType === "ai" && (
+            <div className="mb-6">
+              <AIGenerationProgress
+                progress={generationProgress}
+                status={generationStatus}
+              />
+            </div>
+          )}
 
           <div className="flex gap-4 justify-center flex-wrap">
             <Button
@@ -743,12 +842,17 @@ export default function CardGeneratorPage() {
 
         {/* Student Card */}
         <div className="flex justify-center">
-          <div
-            ref={cardRef}
-            className={`w-[650px] min-h-[400px] bg-white border-none rounded-2xl shadow-2xl overflow-hidden font-sans relative transition-all duration-300 hover:shadow-3xl hover:-translate-y-1 ${
-              showShineEffect ? 'shine-effect' : ''
-            }`}
-          >
+          {isGenerating && !cardGenerated ? (
+            <div className="w-[650px]">
+              <CardPreviewSkeleton />
+            </div>
+          ) : (
+            <div
+              ref={cardRef}
+              className={`w-[650px] min-h-[400px] bg-white dark:bg-gray-100 border-none rounded-2xl shadow-2xl overflow-hidden font-sans relative transition-all duration-300 hover:shadow-3xl hover:-translate-y-1 ${
+                showShineEffect ? 'shine-effect' : ''
+              }`}
+            >
             {/* Shine overlay - covers entire card including header */}
             {showShineEffect && (
               <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl z-50">
@@ -777,7 +881,7 @@ export default function CardGeneratorPage() {
                 unoptimized
               />
               <div className="flex flex-col justify-center">
-                <div id="university-name" className="text-2xl font-bold tracking-wide mb-1 text-shadow">
+                <div id="university-name" className="text-2xl font-bold tracking-wide mb-1 text-shadow text-gray-800">
                   Manipal Academy of Higher Education
                 </div>
                 <div className="text-yellow-300 text-xl font-semibold">
@@ -808,19 +912,19 @@ export default function CardGeneratorPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="mb-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                     <span className="text-blue-700 font-semibold block text-sm">📅 DOB:</span>
-                    <span id="student-dob" className="font-medium">2003-10-10</span>
+                    <span id="student-dob" className="font-medium text-gray-800">2003-10-10</span>
                   </div>
                   <div className="mb-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                     <span className="text-blue-700 font-semibold block text-sm">📚 Course:</span>
-                    <span id="student-course" className="font-medium">2025 - 2028</span>
+                    <span id="student-course" className="font-medium text-gray-800">2025 - 2028</span>
                   </div>
                   <div className="mb-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                     <span className="text-blue-700 font-semibold block text-sm">🎒 Class:</span>
-                    <span id="student-class" className="font-medium">MIT-CS-BTech-2024</span>
+                    <span id="student-class" className="font-medium text-gray-800">MIT-CS-BTech-2024</span>
                   </div>
                   <div className="mb-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                     <span className="text-blue-700 font-semibold block text-sm">🏛️ Department:</span>
-                    <span id="student-department" className="font-medium">Information Technology</span>
+                    <span id="student-department" className="font-medium text-gray-800">Information Technology</span>
                   </div>
                 </div>
 
@@ -855,6 +959,7 @@ export default function CardGeneratorPage() {
               </div>
             </div>
           </div>
+          )}
         </div>
 
 

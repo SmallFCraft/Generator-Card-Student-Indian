@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { StudentData, CardTemplate, TextPosition } from "@/types/card";
 import { toast } from "sonner";
 import { CardPreviewSkeleton } from "@/components/loading-states";
+import { Button } from "@/components/ui/button";
+import { Download, FileText, Send } from "lucide-react";
 
 interface CardPreviewProps {
   studentData: StudentData;
@@ -159,6 +161,8 @@ export const CardPreview = ({ studentData, cardTemplate, isGenerated = false }: 
     }
   }, [studentData, templateLoaded, templateImage, isClient, drawCard]);
 
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const handleDownload = () => {
     const canvas = canvasRef.current;
     if (!canvas) {
@@ -171,18 +175,179 @@ export const CardPreview = ({ studentData, cardTemplate, isGenerated = false }: 
       const link = document.createElement('a');
       link.download = `student-card-${studentData.name || 'unnamed'}.png`;
       link.href = canvas.toDataURL('image/png');
-      
+
       // Trigger download
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast.success("Card downloaded successfully!");
     } catch (error) {
       toast.error("Failed to download card");
       console.error("Download error:", error);
     }
   };
+
+  const handleDownloadPDF = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      toast.error("Canvas not ready for download");
+      return;
+    }
+
+    setIsDownloading(true);
+
+    try {
+      // Dynamic import jsPDF
+      const jsPDF = (await import('jspdf')).default;
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Calculate dimensions to fit A4
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const canvasAspectRatio = canvas.width / canvas.height;
+
+      let imgWidth = pdfWidth - 20; // 10mm margin on each side
+      let imgHeight = imgWidth / canvasAspectRatio;
+
+      if (imgHeight > pdfHeight - 20) {
+        imgHeight = pdfHeight - 20;
+        imgWidth = imgHeight * canvasAspectRatio;
+      }
+
+      const x = (pdfWidth - imgWidth) / 2;
+      const y = (pdfHeight - imgHeight) / 2;
+
+      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+      pdf.save(`student-card-${studentData.name || 'unnamed'}.pdf`);
+
+      toast.success("Card downloaded as PDF successfully!");
+    } catch (error) {
+      toast.error("Failed to download PDF");
+      console.error("PDF download error:", error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Helper function để tạo email domain từ tên trường (sync với Extension)
+  const getEmailDomainFromUniversity = (universityName: string): string => {
+    if (!universityName) return "student.edu.in";
+
+    const domainMap: Record<string, string> = {
+      "Indian Institute of Technology Bombay": "iitb.ac.in",
+      "Indian Institute of Technology Delhi": "iitd.ac.in",
+      "Indian Institute of Science Bangalore": "iisc.ac.in",
+      "Indian Institute of Technology Madras": "iitm.ac.in",
+      "Indian Institute of Technology Kanpur": "iitk.ac.in",
+      "Indian Institute of Technology Kharagpur": "iitkgp.ac.in",
+      "University of Delhi": "du.ac.in",
+      "Jawaharlal Nehru University": "jnu.ac.in",
+      "Indian Institute of Management Ahmedabad": "iima.ac.in",
+      "Banaras Hindu University": "bhu.ac.in",
+      "Manipal Academy of Higher Education": "manipal.edu",
+      "Babu Banarasi Das University": "bbditm.edu.in",
+    };
+
+    // Check for exact match
+    if (domainMap[universityName]) {
+      return domainMap[universityName];
+    }
+
+    // Check for partial matches
+    for (const [key, domain] of Object.entries(domainMap)) {
+      if (universityName.includes(key) || key.includes(universityName)) {
+        return domain;
+      }
+    }
+
+    return "student.edu.in";
+  };
+
+  const handleSendToExtension = () => {
+    if (typeof window === 'undefined') return;
+
+    // Extract data from studentData
+    const universityName = cardTemplate.university?.name || '';
+    const studentName = studentData.name || '';
+    const studentId = studentData.studentId || '';
+    const studentDob = studentData.dateOfBirth || '';
+
+    if (!universityName || !studentName) {
+      toast.error('Card data is incomplete');
+      return;
+    }
+
+    // Create email with proper domain mapping
+    const nameParts = studentName.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    const emailPrefix = `${firstName.toLowerCase()}.${studentId.toLowerCase().replace(/[^a-z0-9]/gi, '')}`;
+    const emailDomain = getEmailDomainFromUniversity(universityName);
+    const email = `${emailPrefix}@${emailDomain}`;
+
+    // Format date to match Extension expectation (YYYY-MM-DD)
+    let formattedDob = studentDob;
+    if (studentDob && !studentDob.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      try {
+        const dobDate = new Date(studentDob);
+        if (!isNaN(dobDate.getTime())) {
+          formattedDob = dobDate.toISOString().split('T')[0];
+        }
+      } catch (error) {
+        console.log('Date format error:', error);
+      }
+    }
+
+    // Structure data to match Extension expectations
+    const studentInfo = {
+      school: universityName,
+      firstName: firstName,
+      lastName: lastName,
+      studentName: studentName, // Keep for backward compatibility
+      studentId: studentId,
+      email: email,
+      dateOfBirth: formattedDob,
+      dob: studentDob, // Keep for backward compatibility
+      course: studentData.course || '',
+      department: studentData.department || '',
+      address: studentData.address || '',
+      mobileNumber: studentData.mobileNumber || '',
+      fatherName: studentData.fatherName || ''
+    };
+
+    console.log('📤 Sending to extension:', studentInfo);
+
+    // Send message to extension (sync với Extension format)
+    window.postMessage({
+      type: 'STUDENT_CARD_EXTRACT',
+      studentInfo: studentInfo
+    }, '*');
+
+    toast.success('📤 Student information sent to extension!');
+  };
+
+  // Listen for extension response
+  useEffect(() => {
+    const handleExtensionResponse = (event: MessageEvent) => {
+      if (event.source !== window || event.data?.type !== 'INFO_EXTRACTED') return;
+
+      if (event.data.success) {
+        console.log('✅ Extension đã nhận thông tin thành công');
+      } else {
+        console.log('❌ Extension gặp lỗi');
+      }
+    };
+
+    window.addEventListener('message', handleExtensionResponse);
+    return () => window.removeEventListener('message', handleExtensionResponse);
+  }, []);
 
   if (!isClient) {
     return (
@@ -217,13 +382,32 @@ export const CardPreview = ({ studentData, cardTemplate, isGenerated = false }: 
       </div>
       
       {studentData.name && (
-        <div className="text-center">
-          <button
+        <div className="flex gap-4 justify-center flex-wrap">
+          <Button
             onClick={handleDownload}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            variant="outline"
+            className="min-w-[140px]"
           >
-            Download Card
-          </button>
+            <Download className="h-4 w-4 mr-2" />
+            💾 Download PNG
+          </Button>
+          <Button
+            onClick={handleDownloadPDF}
+            disabled={isDownloading}
+            variant="outline"
+            className="min-w-[140px]"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            {isDownloading ? "Downloading..." : "📄 Download PDF"}
+          </Button>
+          <Button
+            onClick={handleSendToExtension}
+            variant="outline"
+            className="min-w-[140px] bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            📤 Send to Extension
+          </Button>
         </div>
       )}
       

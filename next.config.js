@@ -32,9 +32,19 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
 
-  // Bundle optimization
+  // Turbopack configuration (stable in Next.js 15)
+  turbopack: {
+    rules: {
+      "*.svg": {
+        loaders: ["@svgr/webpack"],
+        as: "*.js",
+      },
+    },
+  },
+
+  // Bundle optimization (only for production builds)
   webpack: (config, { dev, isServer }) => {
-    // Optimize bundle size
+    // Only apply webpack optimizations in production
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
         chunks: "all",

@@ -22,6 +22,7 @@ export const StudentForm = ({ studentData, setStudentData, cardTemplate }: Stude
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const previousStudentDataRef = useRef<StudentData>(studentData);
 
   // Set default values when component mounts or template changes
   useEffect(() => {
@@ -40,7 +41,46 @@ export const StudentForm = ({ studentData, setStudentData, cardTemplate }: Stude
     });
   }, [cardTemplate, setStudentData]);
 
+  // Auto-validate when studentData changes (from AI/Quick Generate)
+  useEffect(() => {
+    // Check if studentData actually changed
+    const previousData = previousStudentDataRef.current;
+    const hasDataChanged = JSON.stringify(previousData) !== JSON.stringify(studentData);
 
+    if (!hasDataChanged) return;
+
+    // Update ref with new data
+    previousStudentDataRef.current = studentData;
+
+    const newErrors: Record<string, string> = {};
+    const newTouchedFields: Record<string, boolean> = {};
+
+    cardTemplate.formFields.forEach(field => {
+      const value = (studentData[field.id] as string) || '';
+      const previousValue = (previousData[field.id] as string) || '';
+
+      // If field value changed and has value, mark as touched and validate
+      if (value !== previousValue && value && value.trim() !== '') {
+        newTouchedFields[field.id] = true;
+        const error = validateField(field.id, value, field);
+        if (error) {
+          newErrors[field.id] = error;
+        } else {
+          // Clear any existing error for this field
+          newErrors[field.id] = '';
+        }
+      }
+    });
+
+    // Update states
+    if (Object.keys(newTouchedFields).length > 0) {
+      setTouchedFields(prev => ({ ...prev, ...newTouchedFields }));
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFieldErrors(prev => ({ ...prev, ...newErrors }));
+    }
+  }, [studentData, cardTemplate]);
 
   // Handle field change with validation
   const handleFieldChange = (fieldId: string, value: string) => {
