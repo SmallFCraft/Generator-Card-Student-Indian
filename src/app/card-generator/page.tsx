@@ -419,50 +419,25 @@ export default function CardGeneratorPage() {
       const studentID = studentData.studentId || generateStudentID(university.shortName);
       const validUntil = studentData.validUntil || generateValidUntil();
 
-      // Update card information
-      const universityNameEl = document.getElementById('university-name');
-      const studentNameEl = document.getElementById('student-name');
-      const studentDobEl = document.getElementById('student-dob');
-      const studentCourseEl = document.getElementById('student-course');
-      const studentClassEl = document.getElementById('student-class');
-      const studentDepartmentEl = document.getElementById('student-department');
-      const studentIdEl = document.getElementById('student-id');
-      const validUntilEl = document.getElementById('valid-until');
-      const universityLogoEl = document.getElementById('university-logo') as HTMLImageElement;
-      const studentPhotoEl = document.getElementById('student-photo') as HTMLImageElement;
-      const barcodeEl = document.getElementById('barcode') as HTMLImageElement;
+      // Update card data state for React rendering
+      const newCardData = {
+        universityName: university.name,
+        studentName: studentData.name || 'Student Name',
+        studentDob: studentData.dateOfBirth || generateRandomDate(),
+        studentCourse: studentData.course || generateCourse(),
+        studentClass: studentData.class || generateClass(),
+        studentDepartment: studentData.department || getRandomElement(departments) as string,
+        studentId: studentID,
+        validUntil: validUntil,
+        universityLogo: university.logo,
+        studentPhoto: studentPhoto,
+        barcodeData: university.name
+      };
 
-      console.log('🔄 Updating DOM elements with new data:', {
-        university: university.name,
-        student: studentData.name,
-        dob: studentData.dateOfBirth,
-        course: studentData.course,
-        class: studentData.class,
-        department: studentData.department,
-        studentID: studentID
-      });
-
-      if (universityNameEl) {
-        universityNameEl.textContent = university.name;
-        console.log('✅ Updated university name:', university.name);
-      }
-      if (studentNameEl) {
-        studentNameEl.textContent = studentData.name || 'Student Name';
-        console.log('✅ Updated student name:', studentData.name);
-      }
-      if (studentDobEl) studentDobEl.textContent = studentData.dateOfBirth || generateRandomDate();
-      if (studentCourseEl) studentCourseEl.textContent = studentData.course || generateCourse();
-      if (studentClassEl) studentClassEl.textContent = studentData.class || generateClass();
-      if (studentDepartmentEl) studentDepartmentEl.textContent = studentData.department || getRandomElement(departments) as string;
-      if (studentIdEl) studentIdEl.innerHTML = `🆔 Student ID: ${studentID}`;
-      if (validUntilEl) validUntilEl.textContent = validUntil;
+      console.log('🔄 Updating card data state:', newCardData);
+      setCardData(newCardData);
       
-      if (universityLogoEl) universityLogoEl.src = university.logo;
-      if (studentPhotoEl) studentPhotoEl.src = studentPhoto;
-      
-      // Update barcode
-      const barcodeUrl = `/api/barcode?data=${encodeURIComponent(university.name)}&code=Code128`;
-      if (barcodeEl) barcodeEl.src = barcodeUrl;
+      // Barcode will be updated automatically via React state
       
       await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -473,7 +448,7 @@ export default function CardGeneratorPage() {
       setTimeout(() => setShowShineEffect(false), 2000); // Remove after 2 seconds
 
       // Lưu card data để gửi extension
-      const cardData = {
+      const extensionData = {
         university: university.name,
         studentName: studentData.name || 'Student Name',
         studentId: studentID,
@@ -483,7 +458,7 @@ export default function CardGeneratorPage() {
         dob: studentData.dateOfBirth || generateRandomDate(),
         validUntil: validUntil
       };
-      console.log('💾 Card data saved for extension:', cardData);
+      console.log('💾 Card data saved for extension:', extensionData);
       
 
 
@@ -708,13 +683,10 @@ export default function CardGeneratorPage() {
   // Function để gửi data cho extension
   const sendToExtension = () => {
     if (typeof window === 'undefined') return;
-    
-    // Trích xuất data từ DOM elements hiện tại
-    const universityName = document.getElementById('university-name')?.textContent?.trim() || '';
-    const studentName = document.getElementById('student-name')?.textContent?.trim() || '';
-    const studentId = document.getElementById('student-id')?.textContent?.replace('🆔 Student ID: ', '').trim() || '';
-    const studentDob = document.getElementById('student-dob')?.textContent?.trim() || '';
-    
+
+    // Sử dụng cardData state thay vì DOM elements
+    const { universityName, studentName, studentId, studentDob } = cardData;
+
     if (!universityName || !studentName) {
       toast.error('Vui lòng tạo card trước khi gửi đến extension');
       return;
@@ -889,7 +861,7 @@ export default function CardGeneratorPage() {
               <Image
                 id="university-logo"
                 className="w-[85px] h-[85px] object-contain bg-white rounded-xl p-1.5 shadow-lg flex-shrink-0"
-                src="https://i.pinimg.com/736x/64/07/67/6407676eb7f221b13cf517923d0c3652.jpg"
+                src={cardData.universityLogo}
                 alt="University Logo"
                 width={85}
                 height={85}
@@ -897,7 +869,7 @@ export default function CardGeneratorPage() {
               />
               <div className="flex flex-col justify-center">
                 <div id="university-name" className="text-2xl font-bold tracking-wide mb-1 text-shadow text-gray-800">
-                  Manipal Academy of Higher Education
+                  {cardData.universityName}
                 </div>
                 <div className="text-yellow-300 text-xl font-semibold">
                   STUDENT CARD
@@ -910,7 +882,7 @@ export default function CardGeneratorPage() {
               <Image
                 id="student-photo"
                 className="w-[200px] h-[250px] object-cover border-2 border-gray-300 rounded-xl bg-gray-100 shadow-lg transition-transform hover:scale-105"
-                src="https://channel.mediacdn.vn/prupload/879/2018/05/img20180503174618883.jpg"
+                src={cardData.studentPhoto}
                 alt="Student Photo"
                 width={120}
                 height={145}
@@ -920,33 +892,33 @@ export default function CardGeneratorPage() {
                 {/* Student Name - Full width */}
                 <div className="mb-3 p-2 rounded-lg hover:bg-gray-50 transition-colors border-b border-gray-200">
                   <span className="text-blue-700 font-semibold inline-block min-w-[120px]">👤 Name:</span>
-                  <span id="student-name" className="font-bold text-xl text-gray-800">Jayson Jame</span>
+                  <span id="student-name" className="font-bold text-xl text-gray-800">{cardData.studentName}</span>
                 </div>
 
                 {/* Two column layout for other info */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="mb-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                     <span className="text-blue-700 font-semibold block text-sm">📅 DOB:</span>
-                    <span id="student-dob" className="font-medium text-gray-800">2003-10-10</span>
+                    <span id="student-dob" className="font-medium text-gray-800">{cardData.studentDob}</span>
                   </div>
                   <div className="mb-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                     <span className="text-blue-700 font-semibold block text-sm">📚 Course:</span>
-                    <span id="student-course" className="font-medium text-gray-800">2025 - 2028</span>
+                    <span id="student-course" className="font-medium text-gray-800">{cardData.studentCourse}</span>
                   </div>
                   <div className="mb-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                     <span className="text-blue-700 font-semibold block text-sm">🎒 Class:</span>
-                    <span id="student-class" className="font-medium text-gray-800">MIT-CS-BTech-2024</span>
+                    <span id="student-class" className="font-medium text-gray-800">{cardData.studentClass}</span>
                   </div>
                   <div className="mb-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                     <span className="text-blue-700 font-semibold block text-sm">🏛️ Department:</span>
-                    <span id="student-department" className="font-medium text-gray-800">Information Technology</span>
+                    <span id="student-department" className="font-medium text-gray-800">{cardData.studentDepartment}</span>
                   </div>
                 </div>
 
                 {/* Valid until - Full width */}
                 <div className="mt-3 p-2 rounded-lg ">
                   <span className="text-gray-700 font-semibold inline-block min-w-[120px]">⏰ Valid until:</span>
-                  <span id="valid-until" className="font-bold text-gray-800">30/12/2027</span>
+                  <span id="valid-until" className="font-bold text-gray-800">{cardData.validUntil}</span>
                 </div>
               </div>
             </div>
@@ -956,7 +928,7 @@ export default function CardGeneratorPage() {
               <Image
                 id="barcode"
                 className="w-[90%] h-12 rounded shadow-sm border border-gray-200"
-                src="/api/barcode?data=Manipal Academy of Higher Education&code=Code128"
+                src={`/api/barcode?data=${encodeURIComponent(cardData.barcodeData)}&code=Code128`}
                 alt="Barcode"
                 width={540}
                 height={50}
@@ -967,7 +939,7 @@ export default function CardGeneratorPage() {
             {/* Bottom Info */}
             <div className="flex justify-between items-center px-6 pb-4">
               <div className="text-sm text-gray-700 bg-white px-4 py-2 rounded-lg font-semibold shadow-sm border border-gray-200">
-                <span id="student-id">🆔 Student ID: MAHE2025.0370467829</span>
+                <span id="student-id">🆔 Student ID: {cardData.studentId}</span>
               </div>
               <div className="text-sm text-gray-700 bg-white px-4 py-2 rounded-lg font-semibold shadow-sm border border-gray-200">
                 🇮🇳 India

@@ -32,12 +32,19 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
 
-  // Turbopack configuration (stable in Next.js 15)
-  turbopack: {
-    rules: {
-      "*.svg": {
-        loaders: ["@svgr/webpack"],
-        as: "*.js",
+  // Experimental features for better performance
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-select",
+    ],
+    turbo: {
+      rules: {
+        "*.svg": {
+          loaders: ["@svgr/webpack"],
+          as: "*.js",
+        },
       },
     },
   },
