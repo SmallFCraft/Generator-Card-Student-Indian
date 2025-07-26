@@ -277,7 +277,25 @@ export const CardPreview = ({ studentData, cardTemplate, isGenerated = false }: 
     const universityName = cardTemplate.university?.name || '';
     const studentName = studentData.name || '';
     const studentId = studentData.studentId || '';
-    const studentDob = studentData.dateOfBirth || '';
+    let studentDob = studentData.dateOfBirth || studentData.dob || '';
+
+    // Generate random DOB if not available (18-25 years old)
+    if (!studentDob) {
+      const age = Math.floor(Math.random() * 8) + 18; // Random age between 18-25
+      const birthYear = new Date().getFullYear() - age;
+      const birthMonth = Math.floor(Math.random() * 12) + 1; // 1-12
+      const birthDay = Math.floor(Math.random() * 28) + 1; // 1-28 to avoid invalid dates
+      studentDob = `${birthYear}-${birthMonth.toString().padStart(2, '0')}-${birthDay.toString().padStart(2, '0')}`;
+      console.log(`🎂 Generated random DOB for age ${age}: ${studentDob}`);
+    }
+
+    console.log('🔍 CardPreview - Extracting data for extension:', {
+      universityName,
+      studentName,
+      studentId,
+      studentDob,
+      rawStudentData: studentData
+    });
 
     if (!universityName || !studentName) {
       toast.error('Card data is incomplete');

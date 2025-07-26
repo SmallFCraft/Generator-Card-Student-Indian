@@ -1,41 +1,53 @@
-# Multi-University Student ID Card Generator
+# 🎓 Multi-University Student ID Card Generator
 
-A modern web application that generates realistic Indian student ID cards for multiple universities using React 19, Next.js 15, and Google Gemini AI. Features two different generation modes for different use cases.
+A modern, AI-powered web application for generating professional student ID cards for multiple universities. Built with Next.js 15, React 19, and Google Gemini AI.
 
-## Features
+## ✨ Features
 
-### Advanced Card Generator (Main Page)
-- **Multiple University Support**: Generate cards for different Indian universities
-- **Card Template Selection**: Choose from various university card templates
+### 🎨 Card Template System
+- **Multiple Templates**: Support for Babu Banarasi Das University and IIT Madras card layouts
 - **Dynamic Form Fields**: Form fields adapt based on selected university template
-- **Manual Data Entry**: Fill in student information via a clean, modern form
-- **AI-Powered Generation**: Auto-generate realistic student data using Google Gemini AI
-- **Photo Upload**: Upload student photos with configurable positioning
-- **Real-time Preview**: See the generated card in real-time as you input data
 - **Canvas-based Rendering**: High-quality card generation using HTML5 Canvas
-- **Download Functionality**: Download generated cards as PNG images
-- **Advanced Form Validation**: Real-time validation using Joi schemas
-- **Smooth Animations**: CSS-based animations and transitions
-- **Responsive Design**: Works on desktop and mobile devices
-- **Secure Template System**: Template images served securely via API routes
+- **Real-time Preview**: See the generated card in real-time as you input data
 
-### Quick Card Generator (/card-generator)
+### 🤖 AI-Powered Generation
+- **Smart Data Generation**: Uses Google Gemini 2.5 Flash API to generate realistic student data
+- **University-Specific Data**: Generates appropriate data based on selected university
+- **Intelligent Field Mapping**: Automatically fills appropriate fields based on template requirements
+- **Fallback Data Generation**: Ensures all required fields are populated
+
+### 🔧 Advanced Features
+- **Real-time Form Validation**: Using Joi schemas for robust data validation
+- **Photo Upload & Compression**: Automatic image optimization using browser-image-compression
+- **Multiple Export Formats**: Download cards as PNG or PDF using html2canvas-pro and jsPDF
+- **Barcode Generation**: Dynamic barcode creation for student IDs
+- **Theme Support**: Light/dark mode with system preference detection using next-themes
+- **Browser Extension Integration**: Send generated data directly to Chrome extension
+- **Date Utilities**: Smart date generation and formatting with date-fns
+
+### 🎯 Quick Card Generator (/card-generator)
 - **One-Click Generation**: Generate complete student cards with a single click
 - **10+ Indian Universities**: IIT Bombay, Delhi, Madras, Kanpur, Kharagpur, IISc, DU, JNU, IIM Ahmedabad, BHU
-- **30+ Indian Names**: Realistic Indian student names for authentic cards
-- **16 Departments**: Computer Science, IT, Engineering, Sciences, Business, etc.
-- **Random Student Photos**: Integration with Random User API for realistic photos
-- **Instant Download**: Download cards immediately using html2canvas
+- **Random Student Photos**: Integration with avatar APIs for realistic photos
+- **Instant Download**: Download cards immediately
 - **Professional Layout**: Clean, modern card design with barcode generation
-- **No Form Required**: Perfect for quick demos and testing
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-- **Frontend**: React 19, Next.js 15, TypeScript
-- **Styling**: TailwindCSS, Shadcn UI
+### Core Technologies
+- **Frontend**: React 19.1.0, Next.js 15.4.2, TypeScript 5
+- **Styling**: TailwindCSS 4, Shadcn UI Components
 - **AI Integration**: Google Gemini 2.5 Flash API
-- **Image Processing**: HTML5 Canvas, html2canvas
+- **Image Processing**: HTML5 Canvas, html2canvas-pro, jsPDF, browser-image-compression
 - **Notifications**: Sonner (Toast notifications)
+
+### Dependencies
+
+- **UI Components**: Radix UI primitives (dropdown-menu, label, progress, radio-group, select, slot, switch)
+- **Form Validation**: Joi, Validator.js
+- **Date Handling**: date-fns
+- **Utilities**: clsx, tailwind-merge, class-variance-authority
+- **Icons**: Lucide React
 
 ## Getting Started
 
