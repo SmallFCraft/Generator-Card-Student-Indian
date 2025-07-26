@@ -209,6 +209,21 @@ export default function CardGeneratorPage() {
   const [generationStatus, setGenerationStatus] = useState("");
   const [generationType, setGenerationType] = useState<"ai" | "quick" | null>(null);
 
+  // Card data state for React rendering
+  const [cardData, setCardData] = useState({
+    universityName: "Manipal Academy of Higher Education",
+    studentName: "Jayson Jame",
+    studentDob: "2003-10-10",
+    studentCourse: "2025 - 2028",
+    studentClass: "MIT-CS-BTech-2024",
+    studentDepartment: "Information Technology",
+    studentId: "MAHE2025.0370467829",
+    validUntil: "30/12/2027",
+    universityLogo: "https://i.pinimg.com/736x/64/07/67/6407676eb7f221b13cf517923d0c3652.jpg",
+    studentPhoto: "https://channel.mediacdn.vn/prupload/879/2018/05/img20180503174618883.jpg",
+    barcodeData: "Manipal Academy of Higher Education"
+  });
+
   const cardRef = useRef<HTMLDivElement>(null);
   const hasGeneratedRef = useRef(false); // Track if initial generation has happened
 

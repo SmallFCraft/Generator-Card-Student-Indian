@@ -14,8 +14,8 @@ A modern web application that generates realistic Indian student ID cards for mu
 - **Real-time Preview**: See the generated card in real-time as you input data
 - **Canvas-based Rendering**: High-quality card generation using HTML5 Canvas
 - **Download Functionality**: Download generated cards as PNG images
-- **Advanced Form Validation**: Type-safe validation using Zod schemas with React Hook Form
-- **Smooth Animations**: Enhanced UX with Framer Motion animations
+- **Advanced Form Validation**: Real-time validation using Joi schemas
+- **Smooth Animations**: CSS-based animations and transitions
 - **Responsive Design**: Works on desktop and mobile devices
 - **Secure Template System**: Template images served securely via API routes
 
